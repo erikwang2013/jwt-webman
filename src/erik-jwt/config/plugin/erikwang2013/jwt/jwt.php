@@ -9,5 +9,7 @@ return [
     'leeway' => 60,
     'storage' => [
         'type' => 'redis',
+        'database' => 1,
+        'prefix' => 'jwt_blacklist:'
     ]
 ];
