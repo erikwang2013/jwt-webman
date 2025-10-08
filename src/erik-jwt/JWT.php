@@ -72,15 +72,8 @@ class JWT
 
             return $payload;
         } catch (JWTException $e) {
-             Log::error($e->getMessage());
-            // 重新抛出我们自己的异常
-            throw $e;
-        } catch (Exception $e) {
-            // 将其他异常转换为JWTException
-            if (strpos($e->getMessage(), 'Expired token') !== false) {
-                throw JWTException::expired();
-            }
             Log::error($e->getMessage());
+            // 重新抛出我们自己的异常
             throw JWTException::invalid($e->getMessage());
         }
     }
@@ -100,6 +93,7 @@ class JWT
 
             return true;
         } catch (Exception $e) {
+            Log::error($e->getMessage());
             return false;
         }
     }
@@ -154,10 +148,11 @@ class JWT
                         return $this->tokenStorage->blacklist($payload['jti'], $payload['exp']);
                     }
                 } catch (Exception $e) {
-                     Log::error($e->getMessage());
+                    Log::error($e->getMessage());
                     // 忽略解析错误
                 }
             }
+            Log::error($e->getMessage());
             return false;
         } catch (Exception $e) {
             Log::error($e->getMessage());
@@ -174,7 +169,7 @@ class JWT
             $payload = $this->decode($token);
             return isset($payload['jti']) && $this->tokenStorage->isBlacklisted($payload['jti']);
         } catch (Exception $e) {
-             Log::error($e->getMessage());
+            Log::error($e->getMessage());
             return true;
         }
     }

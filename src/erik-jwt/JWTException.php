@@ -16,7 +16,7 @@ class JWTException extends Exception
 
     public static function expired(): self
     {
-        return new self('Token has expired', self::TOKEN_EXPIRED);
+        throw new self('Token has expired', self::TOKEN_EXPIRED);
     }
 
     public static function invalid(string $message = 'Invalid token'): self
@@ -31,17 +31,17 @@ class JWTException extends Exception
 
     public static function storageError(string $message): self
     {
-        return new self('Storage error: ' . $message, self::STORAGE_ERROR);
+        throw new self('Storage error: ' . $message, self::STORAGE_ERROR);
     }
 
     public static function configError(string $message): self
     {
-        return new self('Configuration error: ' . $message, self::CONFIG_ERROR);
+        throw new self('Configuration error: ' . $message, self::CONFIG_ERROR);
     }
 
     public static function networkError(string $message): self
     {
-        return new self('Network error: ' . $message, self::NETWORK_ERROR);
+        throw new self('Network error: ' . $message, self::NETWORK_ERROR);
     }
 
     /**

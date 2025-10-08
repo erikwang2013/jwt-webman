@@ -11,7 +11,7 @@ class FileTokenStorage implements TokenStorageInterface
     public function __construct(string $storagePath = null)
     {
         $this->storagePath = $storagePath ?? sys_get_temp_dir() . '/jwt_blacklist';
-        var_dump($this->storagePath);
+        
         if (!is_dir($this->storagePath)) {
             mkdir($this->storagePath, 0755, true);
         }
