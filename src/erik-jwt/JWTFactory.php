@@ -4,7 +4,7 @@
 namespace ErikJwt;
 
 use support\Redis;
-use PDO;
+use support\Db;
 use Memcached;
 use Exception;
 
@@ -66,18 +66,10 @@ class JWTFactory
 
     private static function createDatabaseStorage(array $config): DatabaseTokenStorage
     {
-        $dsn = $config['dsn'] ?? 'mysql:host=127.0.0.1;dbname=test;charset=utf8mb4';
-        $username = $config['username'] ?? 'root';
-        $password = $config['password'] ?? '';
-        $options = $config['options'] ?? [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ];
 
-        $pdo = new PDO($dsn, $username, $password, $options);
         $tableName = $config['table_name'] ?? 'jwt_blacklist';
-
-        return new DatabaseTokenStorage($pdo, $tableName);
+        Db::table($tableName);
+        return new DatabaseTokenStorage($tableName);
     }
 
     private static function createMemcachedStorage(array $config): MemcachedTokenStorage

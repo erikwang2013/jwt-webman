@@ -3,7 +3,7 @@
 
 namespace ErikJwt;
 
-use PDO;
+use support\Db;
 use PDOException;
 
 class DatabaseTokenStorage implements TokenStorageInterface
@@ -11,9 +11,8 @@ class DatabaseTokenStorage implements TokenStorageInterface
     private $pdo;
     private $tableName;
 
-    public function __construct(PDO $pdo, string $tableName = 'jwt_blacklist')
+    public function __construct(string $tableName = 'jwt_blacklist')
     {
-        $this->pdo = $pdo;
         $this->tableName = $tableName;
         $this->createTableIfNotExists();
     }
@@ -27,14 +26,14 @@ class DatabaseTokenStorage implements TokenStorageInterface
             INDEX idx_expire_time (expire_time)
         )";
 
-        $this->pdo->exec($sql);
+        Db::exec($sql);
     }
 
     public function blacklist(string $jti, int $expireTime): bool
     {
         try {
             $sql = "REPLACE INTO {$this->tableName} (jti, expire_time) VALUES (?, ?)";
-            $stmt = $this->pdo->prepare($sql);
+            $stmt = Db::prepare($sql);
             return $stmt->execute([$jti, $expireTime]);
         } catch (PDOException $e) {
             throw new JWTException('Database operation failed: ' . $e->getMessage(), 0, $e);
@@ -45,7 +44,7 @@ class DatabaseTokenStorage implements TokenStorageInterface
     {
         try {
             $sql = "SELECT jti FROM {$this->tableName} WHERE jti = ? AND expire_time > ?";
-            $stmt = $this->pdo->prepare($sql);
+            $stmt = Db::prepare($sql);
             $stmt->execute([$jti, time()]);
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
@@ -57,7 +56,7 @@ class DatabaseTokenStorage implements TokenStorageInterface
     {
         try {
             $sql = "DELETE FROM {$this->tableName} WHERE expire_time <= ?";
-            $stmt = $this->pdo->prepare($sql);
+            $stmt = Db::prepare($sql);
             return $stmt->execute([time()]);
         } catch (PDOException $e) {
             throw new JWTException('Database operation failed: ' . $e->getMessage(), 0, $e);
