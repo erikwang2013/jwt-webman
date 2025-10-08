@@ -1,6 +1,6 @@
 {
     "name": "erikwang2013/jwt-webman",
-    "description": "Erikwang2013/JWT webman is a JWT plugin that is compatible with webman. Mainly suitable for distributed deployment, used to adapt to webman, with simple and fast installation.",
+    "description": "erikwang2013/jwt-webman is a JWT plugin that is compatible with webman. Mainly suitable for distributed deployment, used to adapt to webman, with simple and fast installation.",
     "keywords": [
         "erik",
         "erikwang2013",
