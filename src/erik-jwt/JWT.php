@@ -16,6 +16,7 @@ class JWT
     private $issuer;
     private $audience;
     private $leeway;
+    private $config;
 
     public function __construct(
         string $secretKey,
@@ -31,6 +32,7 @@ class JWT
         $this->issuer = $issuer;
         $this->audience = $audience;
         $this->leeway = $leeway;
+        $this->config =config('plugin.erikwang2013.jwt.jwt');
 
         // 设置JWT leeway
         FirebaseJWT::$leeway = $leeway;
@@ -39,8 +41,11 @@ class JWT
     /**
      * 生成JWT令牌
      */
-    public function encode(array $payload, int $expire = 3600, array $headers = []): string
+    public function encode(array $payload, int $expire=0, array $headers = []): string
     {
+        $config=$this->config;
+        if($expire===0)$expire=$config['default_expire']??3600;
+        if($expire===0 && isset($payload['token_type']) && strcmp($payload['token_type'],'refresh')==0)$expire=$config['refresh_expire']??3600;
         $now = time();
         $defaultPayload = [
             'iss' => $this->issuer,

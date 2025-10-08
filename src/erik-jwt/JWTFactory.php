@@ -28,7 +28,23 @@ class JWTFactory
 
         $tokenStorage = self::createTokenStorage($config);
 
-        return new JWT($secretKey, $algorithm, $tokenStorage, $issuer, $audience, $leeway);
+         // 应用高级配置：重试机制
+        $advancedConfig = $config->get('advanced', []);
+        $retryAttempts = $advancedConfig['retry_attempts'] ?? 3;
+        $retryDelay = $advancedConfig['retry_delay'] ?? 100;
+        
+        if ($retryAttempts > 1) {
+            $tokenStorage = new RetryTokenStorage($tokenStorage, $retryAttempts, $retryDelay);
+        }
+
+        $jwt = new JWT($secretKey, $algorithm, $tokenStorage, $issuer, $audience, $leeway);
+        // 设置自动清理（如果启用）
+        $autoCleanup = $advancedConfig['auto_cleanup'] ?? false;
+        if ($autoCleanup) {
+            self::setupAutoCleanup($jwt, $advancedConfig);
+        }
+
+        return $jwt;
     }
 
     private static function createTokenStorage(): TokenStorageInterface
@@ -91,21 +107,41 @@ class JWTFactory
     private static function createFileStorage(array $config): FileTokenStorage
     {
         $storagePath = $config['path'] ?? null;
-        return new FileTokenStorage($storagePath);
+        $gcProbability = $config['gc_probability'] ?? 0.1;
+        
+        $storage = new FileTokenStorage($storagePath);
+        
+        // 设置垃圾回收概率
+        if (method_exists($storage, 'setGcProbability')) {
+            $storage->setGcProbability($gcProbability);
+        }
+        
+        return $storage;
     }
 
     /**
-     * 创建简单的JWT实例（用于快速开始）
+     * 设置自动清理
      */
-    public static function createSimple(string $secretKey, string $storageType = 'file'): JWT
+    private static function setupAutoCleanup(JWT $jwt, array $advancedConfig): void
     {
-        $config = new Config([
-            'secret_key' => $secretKey,
-            'storage' => [
-                'type' => $storageType
-            ]
-        ]);
-
-        return self::createFromConfig($config);
+        $cleanupInterval = $advancedConfig['cleanup_interval'] ?? 3600;
+        
+        // 注册 shutdown 函数进行清理
+        register_shutdown_function(function () use ($jwt, $cleanupInterval) {
+            static $lastCleanup = 0;
+            $now = time();
+            
+            // 检查是否需要清理（避免每次请求都清理）
+            if ($now - $lastCleanup >= $cleanupInterval) {
+                try {
+                    $jwt->cleanup();
+                    $lastCleanup = $now;
+                } catch (Exception $e) {
+                    // 忽略清理错误，不影响主要功能
+                    error_log("JWT auto cleanup failed: " . $e->getMessage());
+                }
+            }
+        });
     }
+
 }

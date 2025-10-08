@@ -34,6 +34,13 @@ try {
     $token = $jwt->encode(['user_id' => 123, 'username' => 'testuser']);
     echo "Token generated: " . substr($token, 0, 50) . "...\n";
     
+
+    //生成刷新令牌
+    $refreshToken = $jwt->encode([
+        'user_id' => 123,
+        'token_type' => 'refresh'
+    ], 86400); // 24小时过期
+
     // 验证令牌
     $payload = $jwt->decode($token);
    
@@ -293,7 +300,6 @@ return [
     'storage' => [
         'type' => 'redis',
         'config' => [
-            'password' => 'strong-redis-password', // Redis密码
             'database' => 5, // 使用专用数据库
             'prefix' => 'secure:jwt:' // 唯一前缀
         ]
