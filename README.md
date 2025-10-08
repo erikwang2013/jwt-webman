@@ -53,12 +53,9 @@ try {
     $jwt->blacklist($token);
     echo "Token blacklisted\n";
     
-    // 尝试再次验证黑名单中的令牌
-    try {
-        $jwt->decode($token);
-        echo "ERROR: Token should be blacklisted!\n";
-    } catch (JWTException $e) {
-        echo "Correctly blocked blacklisted token: " . $e->getMessage() . "\n";
+    // 检查黑名单
+    if ($jwt->isBlacklisted($token)) {
+        echo "Token correctly identified as blacklisted\n";
     }
     
 } catch (JWTException $e) {
