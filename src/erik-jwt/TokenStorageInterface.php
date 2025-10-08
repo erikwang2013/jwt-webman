@@ -19,4 +19,6 @@ interface TokenStorageInterface
      * 清理过期的黑名单条目
      */
     public function cleanup(): bool;
+
+
 }

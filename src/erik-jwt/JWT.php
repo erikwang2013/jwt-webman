@@ -6,6 +6,7 @@ namespace ErikJwt;
 use Exception;
 use Firebase\JWT\JWT as FirebaseJWT;
 use Firebase\JWT\Key;
+use support\Log;
 
 class JWT
 {
@@ -71,6 +72,7 @@ class JWT
 
             return $payload;
         } catch (JWTException $e) {
+             Log::error($e->getMessage());
             // 重新抛出我们自己的异常
             throw $e;
         } catch (Exception $e) {
@@ -78,7 +80,7 @@ class JWT
             if (strpos($e->getMessage(), 'Expired token') !== false) {
                 throw JWTException::expired();
             }
-
+            Log::error($e->getMessage());
             throw JWTException::invalid($e->getMessage());
         }
     }
@@ -134,29 +136,33 @@ class JWT
     public function blacklist(string $token): bool
     {
         try {
-        $payload = $this->decode($token);
-        if (!isset($payload['jti'])) {
+            $payload = $this->decode($token);
+            if (!isset($payload['jti'])) {
+                return false;
+            }
+
+            return $this->tokenStorage->blacklist($payload['jti'], $payload['exp']);
+        } catch (JWTException $e) {
+            // 如果是黑名单或过期异常，仍然尝试加入黑名单
+            if (
+                $e->getCode() === JWTException::TOKEN_BLACKLISTED ||
+                $e->getCode() === JWTException::TOKEN_EXPIRED
+            ) {
+                try {
+                    $payload = $this->getPayloadWithoutValidation($token);
+                    if (isset($payload['jti']) && isset($payload['exp'])) {
+                        return $this->tokenStorage->blacklist($payload['jti'], $payload['exp']);
+                    }
+                } catch (Exception $e) {
+                     Log::error($e->getMessage());
+                    // 忽略解析错误
+                }
+            }
+            return false;
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
             return false;
         }
-        
-        return $this->tokenStorage->blacklist($payload['jti'], $payload['exp']);
-    } catch (JWTException $e) {
-        // 如果是黑名单或过期异常，仍然尝试加入黑名单
-        if ($e->getCode() === JWTException::TOKEN_BLACKLISTED || 
-            $e->getCode() === JWTException::TOKEN_EXPIRED) {
-            try {
-                $payload = $this->getPayloadWithoutValidation($token);
-                if (isset($payload['jti']) && isset($payload['exp'])) {
-                    return $this->tokenStorage->blacklist($payload['jti'], $payload['exp']);
-                }
-            } catch (Exception $e) {
-                // 忽略解析错误
-            }
-        }
-        return false;
-    } catch (Exception $e) {
-        return false;
-    }
     }
 
     /**
@@ -168,6 +174,7 @@ class JWT
             $payload = $this->decode($token);
             return isset($payload['jti']) && $this->tokenStorage->isBlacklisted($payload['jti']);
         } catch (Exception $e) {
+             Log::error($e->getMessage());
             return true;
         }
     }

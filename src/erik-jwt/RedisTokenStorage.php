@@ -8,13 +8,11 @@ use Exception;
 
 class RedisTokenStorage implements TokenStorageInterface
 {
-    private $redis;
     private $prefix;
     private $connected = false;
 
-    public function __construct(Redis $redis, string $prefix = 'jwt_blacklist:')
+    public function __construct(string $prefix = 'jwt_blacklist:')
     {
-        $this->redis = $redis;
         $this->prefix = $prefix;
         $this->checkConnection();
     }
@@ -25,7 +23,7 @@ class RedisTokenStorage implements TokenStorageInterface
     private function checkConnection(): void
     {
         try {
-            $this->connected = $this->redis->ping() === true;
+            $this->connected =Redis::ping() === true;
         } catch (Exception $e) {
             $this->connected = false;
             throw JWTException::storageError('Redis connection failed: ' . $e->getMessage());
@@ -59,7 +57,7 @@ class RedisTokenStorage implements TokenStorageInterface
             }
 
             $key = $this->prefix . $jti;
-            $result = $this->redis->setex($key, $ttl, '1');
+            $result = Redis::setex($key, $ttl, '1');
             
             if ($result === false) {
                 throw JWTException::storageError('Failed to blacklist token in Redis');
@@ -77,7 +75,7 @@ class RedisTokenStorage implements TokenStorageInterface
         
         try {
             $key = $this->prefix . $jti;
-            $exists = $this->redis->exists($key);
+            $exists = Redis::exists($key);
             
             // 处理不同版本的Redis exists方法返回值
             if (is_bool($exists)) {
@@ -111,7 +109,7 @@ class RedisTokenStorage implements TokenStorageInterface
     public function reconnect(): bool
     {
         try {
-            $this->redis->close();
+            Redis::close();
             $this->connected = false;
             $this->checkConnection();
             return $this->connected;

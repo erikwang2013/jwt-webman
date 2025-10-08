@@ -36,8 +36,12 @@ try {
     
     // 验证令牌
     $payload = $jwt->decode($token);
+   
     echo "Token validated for user: " . $payload['username'] . "\n";
     
+    //验证令牌状态
+    $jwt->validate($token);
+
     // 将令牌加入黑名单
     $jwt->blacklist($token);
     echo "Token blacklisted\n";

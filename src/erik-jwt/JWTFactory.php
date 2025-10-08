@@ -10,23 +10,31 @@ use Exception;
 
 class JWTFactory
 {
+
+    public static function getConfig()
+    {
+        return config('plugin.erikwang2013.jwt.jwt');
+    }
+
     public static function createFromConfig(): JWT
     {
-        $config = new Config();
-        $secretKey = $config->get('secret_key');
-        $algorithm = $config->get('algorithm');
-        $issuer = $config->get('issuer');
-        $audience = $config->get('audience');
-        $leeway = $config->get('leeway');
+        $config = self::getConfig();
+
+        $secretKey = $config['secret_key'];
+        $algorithm = $config['algorithm'];
+        $issuer = $config['issuer'];
+        $audience = $config['audience'];
+        $leeway = $config['leeway'];
 
         $tokenStorage = self::createTokenStorage($config);
 
         return new JWT($secretKey, $algorithm, $tokenStorage, $issuer, $audience, $leeway);
     }
 
-    private static function createTokenStorage(Config $config): TokenStorageInterface
+    private static function createTokenStorage(): TokenStorageInterface
     {
-        $storageConfig = $config->get('storage', []);
+        $config = self::getConfig();
+        $storageConfig = $config['storage'];
         $type = $storageConfig['type'] ?? 'file';
 
         switch ($type) {
@@ -44,59 +52,13 @@ class JWTFactory
 
     private static function createRedisStorage(array $config): RedisTokenStorage
     {
-        $redis = new Redis();
-        $host = $config['host'] ?? '127.0.0.1';
-        $port = $config['port'] ?? 6379;
-        $timeout = $config['timeout'] ?? 2.5;
-        $readTimeout = $config['read_timeout'] ?? $timeout;
-        $password = $config['password'] ?? null;
-        $database = $config['database'] ?? 0;
-        $persistent = $config['persistent'] ?? false;
-        $persistentId = $config['persistent_id'] ?? null;
-
-        // 设置连接选项
-        $redis->setOption(Redis::OPT_READ_TIMEOUT, $readTimeout);
-        $redis->setOption(Redis::OPT_TCP_NODELAY, true);
-
-        if (isset($config['serializer'])) {
-            $redis->setOption(Redis::OPT_SERIALIZER, $config['serializer']);
-        }
 
         try {
-            if ($persistent) {
-                $persistentId = $persistentId ?? "jwt_{$host}_{$port}_{$database}";
-                $connected = $redis->pconnect($host, $port, $timeout, $persistentId);
-            } else {
-                $connected = $redis->connect($host, $port, $timeout);
-            }
-
-            if (!$connected) {
-                throw new Exception('Failed to connect to Redis server');
-            }
-
-            if ($password) {
-                $authResult = $redis->auth($password);
-                if (!$authResult) {
-                    throw new Exception('Redis authentication failed');
-                }
-            }
-
-            if ($database > 0) {
-                $selectResult = $redis->select($database);
-                if (!$selectResult) {
-                    throw new Exception('Failed to select Redis database');
-                }
-            }
-
-            // 测试连接
-            $pingResult = $redis->ping();
-            if ($pingResult !== true && $pingResult !== '+PONG') {
-                throw new Exception('Redis ping failed');
-            }
-
+            $database = $config['database'] ?? 0;
+            Redis::select($database);
             $prefix = $config['prefix'] ?? 'jwt_blacklist:';
 
-            return new RedisTokenStorage($redis, $prefix);
+            return new RedisTokenStorage($prefix);
         } catch (Exception $e) {
             throw JWTException::storageError('Redis initialization failed: ' . $e->getMessage());
         }
