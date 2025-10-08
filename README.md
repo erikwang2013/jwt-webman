@@ -111,14 +111,23 @@ $configs = [
         'secret_key' => 'your-secret-key',
         'storage' => [
             'type' => 'redis',
-            'config' => ['host' => '127.0.0.1', 'port' => 6379]
+            'config' => [
+                'database' => 1,
+                'prefix' => 'prod:jwt:blacklist:',
+                'timeout' => 1.0,
+                'read_timeout' => 1.0,
+                'persistent' => true,
+                'persistent_id' => 'jwt_pool'
+            ]
         ]
     ],
     [
         'secret_key' => 'your-secret-key', 
         'storage' => [
             'type' => 'database',
-            'config' => ['dsn' => 'mysql:host=127.0.0.1;dbname=test']
+            'config' => [
+                'table_name' => 'user_token_blacklist',
+            ]
         ]
     ],
     [
@@ -224,14 +233,7 @@ return [
     'storage' => [
         'type' => 'database',
         'config' => [
-            'dsn' => getenv('DATABASE_DSN'),
             'table_name' => 'user_token_blacklist',
-            'options' => [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
-            ]
         ]
     ],
     
