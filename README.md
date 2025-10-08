@@ -11,7 +11,7 @@ erikwang2013/jwt-webman是一款适配webman的jwt插件。
 
 Use [Composer](https://github.com/composer/composer):
 ```sh
-composer erikwang2013/jwt-webman
+composer require erikwang2013/jwt-webman
 ```
 
 
