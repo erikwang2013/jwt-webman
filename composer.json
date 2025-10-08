@@ -1,6 +1,6 @@
 {
     "name": "erikwang2013/jwt-webman",
-    "description": "erikwang2013/jwt-webman is a code performance analysis plugin that is compatible with webman. Mainly optimize and adjust the old and unusable xhprof for adapting to webman, making installation simple and fast.Developers can quickly access performance analysis reports through browsers to troubleshoot code performance issues.",
+    "description": "Erikwang2013/JWT webman is a JWT plugin that is compatible with webman. Mainly suitable for distributed deployment, used to adapt to webman, with simple and fast installation.",
     "keywords": [
         "erik",
         "erikwang2013",

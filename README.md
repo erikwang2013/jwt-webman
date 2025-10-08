@@ -1,5 +1,5 @@
 ## 简介 ##
-aaron-dev/xhprof-webman是一款适配webman的jwt插件。
+erikwang2013/jwt-webman是一款适配webman的jwt插件。
 主要是适用分布式部署，用于适配webman，安装简单快捷。
 
 ## 作者博客 ##
