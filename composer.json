@@ -1,0 +1,47 @@
+{
+    "name": "erikwang2013/jwt-webman",
+    "description": "erikwang2013/jwt-webman is a code performance analysis plugin that is compatible with webman. Mainly optimize and adjust the old and unusable xhprof for adapting to webman, making installation simple and fast.Developers can quickly access performance analysis reports through browsers to troubleshoot code performance issues.",
+    "keywords": [
+        "erik",
+        "erikwang2013",
+        "erik",
+        "jwt",
+        "webman"
+    ],
+    "version":"v1.0.0",
+    "type": "library",
+    "license": "MIT",
+    "minimum-stability": "dev",
+    "authors": [
+        {
+            "name": "erik",
+            "email": "erik@erik.xyz",
+            "homepage": "https://erik.xyz",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "email": "erik@erik.xyz",
+        "issues": "https://github.com/erikwang2013/jwt-webman/issues",
+        "source": "https://github.com/erikwang2013/jwt-webman"
+      },
+    "require": {
+        "php": ">=7.2",
+        "workerman/webman": "*",
+        "monolog/monolog": "*",
+        "webman/redis": "*",
+        "firebase/php-jwt": "^6.0",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "ErikJwt\\": "src/erik-jwt"
+        }
+    },
+    "repositories": {
+        "packagist": {
+          "type": "composer",
+          "url": "https://repo.packagist.org/"
+        }
+      }
+}
