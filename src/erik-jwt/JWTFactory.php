@@ -29,7 +29,7 @@ class JWTFactory
         $tokenStorage = self::createTokenStorage($config);
 
          // 应用高级配置：重试机制
-        $advancedConfig = $config->get('advanced', []);
+        $advancedConfig = $config['advanced'];
         $retryAttempts = $advancedConfig['retry_attempts'] ?? 3;
         $retryDelay = $advancedConfig['retry_delay'] ?? 100;
         
