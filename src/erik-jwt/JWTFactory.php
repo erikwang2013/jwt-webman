@@ -3,7 +3,6 @@
 
 namespace ErikJwt;
 
-use support\Redis;
 use support\Db;
 use Memcached;
 use Exception;
@@ -11,25 +10,29 @@ use Exception;
 class JWTFactory
 {
 
-    public static function getConfig()
+    public static function getConfig(): array
     {
-        return config('plugin.erikwang2013.jwt.jwt');
+        return config('plugin.erikwang2013.jwt.jwt') ?: [];
     }
 
-    public static function createFromConfig(): JWT
+    /**
+     * 从配置创建 JWT 实例。可传入 Config 或使用全局配置。
+     */
+    public static function createFromConfig(?Config $config = null): JWT
     {
-        $config = self::getConfig();
+        $configArray = $config !== null ? $config->toArray() : self::getConfig();
+        $config = $configArray;
 
-        $secretKey = $config['secret_key'];
-        $algorithm = $config['algorithm'];
-        $issuer = $config['issuer'];
-        $audience = $config['audience'];
-        $leeway = $config['leeway'];
+        $secretKey = $config['secret_key'] ?? '';
+        $algorithm = $config['algorithm'] ?? 'HS256';
+        $issuer = $config['issuer'] ?? '';
+        $audience = $config['audience'] ?? '';
+        $leeway = (int) ($config['leeway'] ?? 0);
 
-        $tokenStorage = self::createTokenStorage($config);
+        $tokenStorage = self::createTokenStorage($config['storage'] ?? []);
 
          // 应用高级配置：重试机制
-        $advancedConfig = $config['advanced'];
+        $advancedConfig = $config['advanced'] ?? [];
         $retryAttempts = $advancedConfig['retry_attempts'] ?? 3;
         $retryDelay = $advancedConfig['retry_delay'] ?? 100;
         
@@ -47,33 +50,35 @@ class JWTFactory
         return $jwt;
     }
 
-    private static function createTokenStorage(): TokenStorageInterface
+    /**
+     * 合并 storage 顶层项到 config，使默认配置中 storage.database / storage.prefix 等生效。
+     */
+    private static function createTokenStorage(array $storageConfig): TokenStorageInterface
     {
-        $config = self::getConfig();
-        $storageConfig = $config['storage'];
+        $merged = array_merge(
+            ['database' => 0, 'prefix' => 'jwt_blacklist:', 'path' => null, 'table_name' => 'jwt_blacklist', 'servers' => []],
+            $storageConfig,
+            $storageConfig['config'] ?? []
+        );
         $type = $storageConfig['type'] ?? 'file';
 
         switch ($type) {
             case 'redis':
-                return self::createRedisStorage($storageConfig['config'] ?? []);
+                return self::createRedisStorage($merged);
             case 'database':
-                return self::createDatabaseStorage($storageConfig['config'] ?? []);
+                return self::createDatabaseStorage($merged);
             case 'memcached':
-                return self::createMemcachedStorage($storageConfig['config'] ?? []);
+                return self::createMemcachedStorage($merged);
             case 'file':
             default:
-                return self::createFileStorage($storageConfig['config'] ?? []);
+                return self::createFileStorage($merged);
         }
     }
 
     private static function createRedisStorage(array $config): RedisTokenStorage
     {
-
         try {
-            $database = $config['database'] ?? 0;
-            Redis::select($database);
             $prefix = $config['prefix'] ?? 'jwt_blacklist:';
-
             return new RedisTokenStorage($prefix);
         } catch (Exception $e) {
             throw JWTException::storageError('Redis initialization failed: ' . $e->getMessage());

@@ -30,7 +30,7 @@ class MemcachedTokenStorage implements TokenStorageInterface
             $key = $this->prefix . $jti;
             return $this->memcached->set($key, '1', $ttl);
         } catch (Exception $e) {
-            throw new JWTException('Memcached operation failed: ' . $e->getMessage(), 0, $e);
+            throw JWTException::storageError('Memcached operation failed: ' . $e->getMessage());
         }
     }
 
@@ -41,7 +41,7 @@ class MemcachedTokenStorage implements TokenStorageInterface
             $result = $this->memcached->get($key);
             return $result !== false;
         } catch (Exception $e) {
-            throw new JWTException('Memcached operation failed: ' . $e->getMessage(), 0, $e);
+            throw JWTException::storageError('Memcached operation failed: ' . $e->getMessage());
         }
     }
 

@@ -32,7 +32,7 @@ class JWT
         $this->issuer = $issuer;
         $this->audience = $audience;
         $this->leeway = $leeway;
-        $this->config =config('plugin.erikwang2013.jwt.jwt');
+        $this->config = config('plugin.erikwang2013.jwt.jwt');
 
         // 设置JWT leeway
         FirebaseJWT::$leeway = $leeway;
@@ -41,11 +41,14 @@ class JWT
     /**
      * 生成JWT令牌
      */
-    public function encode(array $payload, int $expire=0, array $headers = []): string
+    public function encode(array $payload, int $expire = 0, array $headers = []): string
     {
-        $config=$this->config;
-        if($expire===0)$expire=$config['default_expire']??3600;
-        if($expire===0 && isset($payload['token_type']) && strcmp($payload['token_type'],'refresh')==0)$expire=$config['refresh_expire']??3600;
+        $config = $this->config;
+        if ($expire === 0) {
+            $expire = (isset($payload['token_type']) && $payload['token_type'] === 'refresh')
+                ? ($config['refresh_expire'] ?? 7200)
+                : ($config['default_expire'] ?? 3600);
+        }
         $now = time();
         $defaultPayload = [
             'iss' => $this->issuer,
@@ -69,7 +72,7 @@ class JWT
         try {
             $decoded = FirebaseJWT::decode($token, new Key($this->secretKey, $this->algorithm));
             $payload = (array) $decoded;
-
+            if ($payload['exp'] < time()) throw JWTException::expired();
             // 检查黑名单
             if (isset($payload['jti']) && $this->tokenStorage->isBlacklisted($payload['jti'])) {
                 throw JWTException::blacklisted();
@@ -84,18 +87,12 @@ class JWT
     }
 
     /**
-     * 验证令牌而不抛出异常
+     * 验证令牌而不抛出异常（decode 内部已检查黑名单）
      */
     public function validate(string $token): bool
     {
         try {
-            $payload = $this->decode($token);
-
-            // 额外检查黑名单
-            if (isset($payload['jti']) && $this->tokenStorage->isBlacklisted($payload['jti'])) {
-                return false;
-            }
-
+            $this->decode($token);
             return true;
         } catch (Exception $e) {
             Log::error($e->getMessage());

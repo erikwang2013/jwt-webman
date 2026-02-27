@@ -36,7 +36,7 @@ class DatabaseTokenStorage implements TokenStorageInterface
             $stmt = Db::prepare($sql);
             return $stmt->execute([$jti, $expireTime]);
         } catch (PDOException $e) {
-            throw new JWTException('Database operation failed: ' . $e->getMessage(), 0, $e);
+            throw JWTException::storageError('Database operation failed: ' . $e->getMessage());
         }
     }
 
@@ -48,7 +48,7 @@ class DatabaseTokenStorage implements TokenStorageInterface
             $stmt->execute([$jti, time()]);
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
-            throw new JWTException('Database operation failed: ' . $e->getMessage(), 0, $e);
+            throw JWTException::storageError('Database operation failed: ' . $e->getMessage());
         }
     }
 
@@ -59,7 +59,7 @@ class DatabaseTokenStorage implements TokenStorageInterface
             $stmt = Db::prepare($sql);
             return $stmt->execute([time()]);
         } catch (PDOException $e) {
-            throw new JWTException('Database operation failed: ' . $e->getMessage(), 0, $e);
+            throw JWTException::storageError('Database operation failed: ' . $e->getMessage());
         }
     }
 }

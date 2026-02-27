@@ -9,7 +9,7 @@ class Config
 
     public function __construct(array $config = [])
     {
-        $this->config = config('pulgin.erikwang2013.jwt.jwt');
+        $this->config = $config !== [] ? $config : (config('plugin.erikwang2013.jwt.jwt') ?: []);
     }
 
     public function get(string $key, $default = null)
