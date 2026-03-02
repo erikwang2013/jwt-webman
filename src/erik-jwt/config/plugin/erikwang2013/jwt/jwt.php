@@ -17,7 +17,7 @@ return [
     'advanced' => [
         'retry_attempts' => getenv('JWT_ADVANCED_RETRY_ATTEMPTS'),   //操作失败重试次数
         'retry_delay' => getenv('JWT_ADVANCED_RETRY_DELAY'),    //重试延迟（毫秒）
-        'auto_cleanup' => (bool)getenv('JWT_ADVANCED_AUTO_CLEANUP'),  //是否自动清理过期条目
+        'auto_cleanup' => (boolean)getenv('JWT_ADVANCED_AUTO_CLEANUP'),  //是否自动清理过期条目
         'cleanup_interval' => getenv('JJWT_ADVANCED_CLEANUP_INTERVAL')   //自动清理间隔（秒）
     ]
 ];
