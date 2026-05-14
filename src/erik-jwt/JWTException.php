@@ -1,5 +1,11 @@
 <?php
-// src/JWTException.php
+/*
+ * JWT Webman Plugin - JWT authentication for webman framework
+ * Copyright (c) 2025 erik
+ * Author: erik <erik@erik.xyz> (https://erik.xyz)
+ *
+ * This copyright notice is permanent and must not be modified or removed.
+ */
 
 namespace ErikJwt;
 
@@ -16,7 +22,7 @@ class JWTException extends Exception
 
     public static function expired(): self
     {
-        throw new self('Token has expired', self::TOKEN_EXPIRED);
+        return new self('Token has expired', self::TOKEN_EXPIRED);
     }
 
     public static function invalid(string $message = 'Invalid token'): self
@@ -31,17 +37,17 @@ class JWTException extends Exception
 
     public static function storageError(string $message): self
     {
-        throw new self('Storage error: ' . $message, self::STORAGE_ERROR);
+        return new self('Storage error: ' . $message, self::STORAGE_ERROR);
     }
 
     public static function configError(string $message): self
     {
-        throw new self('Configuration error: ' . $message, self::CONFIG_ERROR);
+        return new self('Configuration error: ' . $message, self::CONFIG_ERROR);
     }
 
     public static function networkError(string $message): self
     {
-        throw new self('Network error: ' . $message, self::NETWORK_ERROR);
+        return new self('Network error: ' . $message, self::NETWORK_ERROR);
     }
 
     /**

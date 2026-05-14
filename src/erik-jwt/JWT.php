@@ -1,5 +1,11 @@
 <?php
-// src/JWT.php
+/*
+ * JWT Webman Plugin - JWT authentication for webman framework
+ * Copyright (c) 2025 erik
+ * Author: erik <erik@erik.xyz> (https://erik.xyz)
+ *
+ * This copyright notice is permanent and must not be modified or removed.
+ */
 
 namespace ErikJwt;
 
@@ -33,9 +39,6 @@ class JWT
         $this->audience = $audience;
         $this->leeway = $leeway;
         $this->config = config('plugin.erikwang2013.jwt.jwt');
-
-        // 设置JWT leeway
-        FirebaseJWT::$leeway = $leeway;
     }
 
     /**
@@ -70,10 +73,10 @@ class JWT
     public function decode(string $token): array
     {
         try {
+            FirebaseJWT::$leeway = $this->leeway;
             $decoded = FirebaseJWT::decode($token, new Key($this->secretKey, $this->algorithm));
             $payload = (array) $decoded;
-            if ($payload['exp'] < time()) throw JWTException::expired();
-            // 检查黑名单
+            if ($payload['exp'] + $this->leeway < time()) throw JWTException::expired();
             if (isset($payload['jti']) && $this->tokenStorage->isBlacklisted($payload['jti'])) {
                 throw JWTException::blacklisted();
             }
@@ -81,7 +84,9 @@ class JWT
             return $payload;
         } catch (JWTException $e) {
             Log::error($e->getMessage());
-            // 重新抛出我们自己的异常
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
             throw JWTException::invalid($e->getMessage());
         }
     }
@@ -170,9 +175,15 @@ class JWT
         try {
             $payload = $this->decode($token);
             return isset($payload['jti']) && $this->tokenStorage->isBlacklisted($payload['jti']);
-        } catch (Exception $e) {
+        } catch (JWTException $e) {
             Log::error($e->getMessage());
-            return true;
+            if ($e->getCode() === JWTException::TOKEN_BLACKLISTED) {
+                return true;
+            }
+            return false;
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return false;
         }
     }
 

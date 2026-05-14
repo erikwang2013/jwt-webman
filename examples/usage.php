@@ -1,5 +1,11 @@
 <?php
-// examples/error_handling.php
+/*
+ * JWT Webman Plugin - JWT authentication for webman framework
+ * Copyright (c) 2025 erik
+ * Author: erik <erik@erik.xyz> (https://erik.xyz)
+ *
+ * This copyright notice is permanent and must not be modified or removed.
+ */
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
