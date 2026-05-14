@@ -141,7 +141,7 @@ class JWTFactory
                 try {
                     $jwt->cleanup();
                     $lastCleanup = $now;
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     // 忽略清理错误，不影响主要功能
                     error_log("JWT auto cleanup failed: " . $e->getMessage());
                 }
