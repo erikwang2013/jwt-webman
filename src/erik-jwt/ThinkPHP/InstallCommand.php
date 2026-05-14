@@ -44,7 +44,7 @@ class InstallCommand extends Command
                     $envContent
                 );
             } else {
-                $envContent .= "\n[JWT]\nSECRET_KEY={$secretKey}\n";
+                $envContent .= "\nJWT.SECRET_KEY={$secretKey}\n";
             }
             file_put_contents($envPath, $envContent);
         }
