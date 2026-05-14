@@ -1,0 +1,31 @@
+<?php
+
+namespace ErikJwt\ThinkPHP;
+
+use ErikJwt\JWTFactory;
+use think\Service;
+
+class JWTService extends Service
+{
+    public function register(): void
+    {
+        $this->app->bind('erik.jwt', function ($app) {
+            $config = $app->config->get('jwt', []);
+
+            $connections = [];
+            if (($config['storage']['type'] ?? '') === 'redis') {
+                $connections['redis'] = fn() => \think\facade\Cache::store('redis')->handler();
+            }
+            if (($config['storage']['type'] ?? '') === 'database') {
+                $connections['pdo'] = \think\facade\Db::connect()->getPdo();
+            }
+
+            return JWTFactory::createFromConfig($config, null, $connections);
+        });
+    }
+
+    public function boot(): void
+    {
+        $this->app->middleware->alias('jwt', Middleware::class);
+    }
+}
