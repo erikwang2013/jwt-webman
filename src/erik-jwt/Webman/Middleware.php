@@ -9,6 +9,7 @@
 
 namespace ErikJwt\Webman;
 
+use ErikJwt\JWT;
 use ErikJwt\JWTFactory;
 use Webman\MiddlewareInterface;
 use Webman\Http\Response;
@@ -16,6 +17,23 @@ use Webman\Http\Request;
 
 class Middleware implements MiddlewareInterface
 {
+    private static ?JWT $jwtInstance = null;
+
+    private static function getJWT(): JWT
+    {
+        if (self::$jwtInstance !== null) {
+            return self::$jwtInstance;
+        }
+
+        $config = config('plugin.erikwang2013.jwt.jwt', []);
+        self::$jwtInstance = JWTFactory::createFromConfig($config, null, [
+            'redis' => fn() => \support\Redis::connection(),
+            'pdo'   => \support\Db::connection()->getPdo(),
+        ]);
+
+        return self::$jwtInstance;
+    }
+
     public function process(Request $request, callable $next): Response
     {
         $config = config('plugin.erikwang2013.jwt.jwt', []);
@@ -39,10 +57,7 @@ class Middleware implements MiddlewareInterface
         }
 
         try {
-            $jwt = JWTFactory::createFromConfig($config, null, [
-                'redis' => fn() => \support\Redis::connection(),
-                'pdo'   => \support\Db::connection()->getPdo(),
-            ]);
+            $jwt = self::getJWT();
             $payload = $jwt->decode($token);
             $request->jwt_payload = $payload;
         } catch (\ErikJwt\JWTException $e) {
