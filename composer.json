@@ -1,12 +1,15 @@
 {
     "name": "erikwang2013/jwt-webman",
-    "description": "erikwang2013/jwt-webman is a JWT plugin that is compatible with webman. Mainly suitable for distributed deployment, used to adapt to webman, with simple and fast installation.",
+    "description": "A JWT plugin compatible with webman, Laravel, ThinkPHP, and Hyperf. Suitable for distributed deployment, simple and fast installation.",
     "keywords": [
         "erik",
         "erikwang2013",
         "erik",
         "jwt",
-        "webman"
+        "webman",
+        "laravel",
+        "thinkphp",
+        "hyperf"
     ],
     "type": "library",
     "license": "MIT",
@@ -23,14 +26,24 @@
         "email": "erik@erik.xyz",
         "issues": "https://github.com/erikwang2013/jwt-webman/issues",
         "source": "https://github.com/erikwang2013/jwt-webman"
-      },
+    },
     "require": {
-        "php": ">=7.2",
-        "workerman/webman": "*",
-        "monolog/monolog": "*",
-        "webman/redis": "*",
+        "php": ">=7.4",
         "firebase/php-jwt": "^6.0",
+        "psr/log": "^1.0 | ^2.0 | ^3.0",
         "ext-json": "*"
+    },
+    "suggest": {
+        "workerman/webman": "For webman framework integration",
+        "laravel/framework": "For Laravel framework integration",
+        "topthink/framework": "For ThinkPHP framework integration",
+        "hyperf/framework": "For Hyperf framework integration"
+    },
+    "extra": {
+        "laravel": {
+            "providers": ["ErikJwt\\Laravel\\JWTServiceProvider"],
+            "aliases": {"JWT": "ErikJwt\\Laravel\\Facade"}
+        }
     },
     "autoload": {
         "psr-4": {
@@ -39,8 +52,8 @@
     },
     "repositories": {
         "packagist": {
-          "type": "composer",
-          "url": "https://repo.packagist.org/"
+            "type": "composer",
+            "url": "https://repo.packagist.org/"
         }
-      }
+    }
 }
