@@ -9,48 +9,38 @@
 
 namespace ErikJwt;
 
-use support\Db;
 use Memcached;
-use Exception;
+use PDO;
+use Psr\Log\LoggerInterface;
 
 class JWTFactory
 {
 
-    public static function getConfig(): array
-    {
-        return config('plugin.erikwang2013.jwt.jwt') ?: [];
-    }
-
     /**
-     * 从配置创建 JWT 实例。可传入 Config 或使用全局配置。
+     * 从配置创建 JWT 实例。
      */
-    public static function createFromConfig(?Config $config = null): JWT
-    {
-        $configArray = $config !== null ? $config->toArray() : self::getConfig();
-        $config = $configArray;
-
+    public static function createFromConfig(
+        array $config,
+        ?LoggerInterface $logger = null,
+        array $connections = []
+    ): JWT {
         $secretKey = $config['secret_key'] ?? '';
         if (empty($secretKey) || strlen($secretKey) < 16) {
             throw JWTException::configError('Secret key must be at least 16 characters');
         }
-        $algorithm = $config['algorithm'] ?? 'HS256';
-        $issuer = $config['issuer'] ?? '';
-        $audience = $config['audience'] ?? '';
-        $leeway = (int) ($config['leeway'] ?? 0);
 
-        $tokenStorage = self::createTokenStorage($config['storage'] ?? []);
-
-         // 应用高级配置：重试机制
+        $tokenStorage = self::createTokenStorage($config, $connections);
         $advancedConfig = $config['advanced'] ?? [];
-        $retryAttempts = $advancedConfig['retry_attempts'] ?? 3;
-        $retryDelay = $advancedConfig['retry_delay'] ?? 100;
-        
+        $retryAttempts = (int)($advancedConfig['retry_attempts'] ?? 3);
+        $retryDelay    = (int)($advancedConfig['retry_delay'] ?? 100);
+
         if ($retryAttempts > 1) {
             $tokenStorage = new RetryTokenStorage($tokenStorage, $retryAttempts, $retryDelay);
         }
 
-        $jwt = new JWT($secretKey, $algorithm, $tokenStorage, $issuer, $audience, $leeway);
-        // 设置自动清理（如果启用）
+        $config['_token_storage'] = $tokenStorage;
+        $jwt = new JWT($config, $logger);
+
         $autoCleanup = $advancedConfig['auto_cleanup'] ?? false;
         if ($autoCleanup) {
             self::setupAutoCleanup($jwt, $advancedConfig);
@@ -62,59 +52,60 @@ class JWTFactory
     /**
      * 合并 storage 顶层项到 config，使默认配置中 storage.database / storage.prefix 等生效。
      */
-    private static function createTokenStorage(array $storageConfig): TokenStorageInterface
+    private static function createTokenStorage(array $config, array $connections): TokenStorageInterface
     {
         $merged = array_merge(
             ['database' => 0, 'prefix' => 'jwt_blacklist:', 'path' => null, 'table_name' => 'jwt_blacklist', 'servers' => []],
-            $storageConfig,
-            $storageConfig['config'] ?? []
+            $config['storage'] ?? [],
+            $config['storage']['config'] ?? []
         );
-        $type = $storageConfig['type'] ?? 'file';
+        $type = $merged['type'] ?? 'file';
 
         switch ($type) {
             case 'redis':
-                return self::createRedisStorage($merged);
+                return self::createRedisStorage($merged, $connections);
             case 'database':
-                return self::createDatabaseStorage($merged);
+                return self::createDatabaseStorage($merged, $connections);
             case 'memcached':
-                return self::createMemcachedStorage($merged);
+                return self::createMemcachedStorage($merged, $connections);
             case 'file':
             default:
                 return self::createFileStorage($merged);
         }
     }
 
-    private static function createRedisStorage(array $config): RedisTokenStorage
+    private static function createRedisStorage(array $config, array $connections): RedisTokenStorage
     {
-        try {
-            $prefix = $config['prefix'] ?? 'jwt_blacklist:';
-            return new RedisTokenStorage($prefix);
-        } catch (Exception $e) {
-            throw JWTException::storageError('Redis initialization failed: ' . $e->getMessage());
+        $redisResolver = $connections['redis'] ?? null;
+        if (!$redisResolver || !is_callable($redisResolver)) {
+            throw JWTException::storageError('Redis resolver callable required when storage type is redis');
         }
-    }
-
-    private static function createDatabaseStorage(array $config): DatabaseTokenStorage
-    {
-
-        $tableName = $config['table_name'] ?? 'jwt_blacklist';
-        Db::table($tableName);
-        return new DatabaseTokenStorage($tableName);
-    }
-
-    private static function createMemcachedStorage(array $config): MemcachedTokenStorage
-    {
-        $memcached = new Memcached();
-        $servers = $config['servers'] ?? [['127.0.0.1', 11211]];
-
-        $memcached->addServers($servers);
-
-        if (isset($config['options'])) {
-            $memcached->setOptions($config['options']);
-        }
-
         $prefix = $config['prefix'] ?? 'jwt_blacklist:';
+        return new RedisTokenStorage($redisResolver, $prefix);
+    }
 
+    private static function createDatabaseStorage(array $config, array $connections): DatabaseTokenStorage
+    {
+        $pdo = $connections['pdo'] ?? null;
+        if (!$pdo instanceof PDO) {
+            throw JWTException::storageError('PDO instance required when storage type is database');
+        }
+        $tableName = $config['table_name'] ?? 'jwt_blacklist';
+        return new DatabaseTokenStorage($pdo, $tableName);
+    }
+
+    private static function createMemcachedStorage(array $config, array $connections): MemcachedTokenStorage
+    {
+        $memcached = $connections['memcached'] ?? null;
+        if (!$memcached instanceof Memcached) {
+            $memcached = new Memcached();
+            $servers = $config['servers'] ?? [['127.0.0.1', 11211]];
+            $memcached->addServers($servers);
+            if (isset($config['options'])) {
+                $memcached->setOptions($config['options']);
+            }
+        }
+        $prefix = $config['prefix'] ?? 'jwt_blacklist:';
         return new MemcachedTokenStorage($memcached, $prefix);
     }
 
@@ -122,14 +113,14 @@ class JWTFactory
     {
         $storagePath = $config['path'] ?? null;
         $gcProbability = $config['gc_probability'] ?? 0.1;
-        
+
         $storage = new FileTokenStorage($storagePath);
-        
+
         // 设置垃圾回收概率
         if (method_exists($storage, 'setGcProbability')) {
             $storage->setGcProbability($gcProbability);
         }
-        
+
         return $storage;
     }
 
