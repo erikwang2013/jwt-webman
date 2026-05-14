@@ -9,17 +9,18 @@
 
 namespace ErikJwt;
 
-use support\Redis;
 use Exception;
 
 class RedisTokenStorage implements TokenStorageInterface
 {
     private $prefix;
+    private $redisResolver;
     private $connected = false;
 
-    public function __construct(string $prefix = 'jwt_blacklist:')
+    public function __construct(callable $redisResolver, string $prefix = 'jwt_blacklist:')
     {
         $this->prefix = $prefix;
+        $this->redisResolver = $redisResolver;
         $this->checkConnection();
     }
 
@@ -29,7 +30,7 @@ class RedisTokenStorage implements TokenStorageInterface
     private function checkConnection(): void
     {
         try {
-            $this->connected =Redis::ping() === true;
+            $this->connected = ($this->redisResolver)()->ping() === true;
         } catch (Exception $e) {
             $this->connected = false;
             throw JWTException::storageError('Redis connection failed: ' . $e->getMessage());
@@ -63,7 +64,7 @@ class RedisTokenStorage implements TokenStorageInterface
             }
 
             $key = $this->prefix . $jti;
-            $result = Redis::setex($key, $ttl, '1');
+            $result = ($this->redisResolver)()->setex($key, $ttl, '1');
             
             if ($result === false) {
                 throw JWTException::storageError('Failed to blacklist token in Redis');
@@ -81,7 +82,7 @@ class RedisTokenStorage implements TokenStorageInterface
         
         try {
             $key = $this->prefix . $jti;
-            $exists = Redis::exists($key);
+            $exists = ($this->redisResolver)()->exists($key);
             
             // 处理不同版本的Redis exists方法返回值
             if (is_bool($exists)) {
@@ -115,7 +116,10 @@ class RedisTokenStorage implements TokenStorageInterface
     public function reconnect(): bool
     {
         try {
-            Redis::close();
+            $redis = ($this->redisResolver)();
+            if (method_exists($redis, 'close')) {
+                $redis->close();
+            }
             $this->connected = false;
             $this->checkConnection();
             return $this->connected;
