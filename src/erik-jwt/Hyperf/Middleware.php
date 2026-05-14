@@ -14,6 +14,7 @@ namespace ErikJwt\Hyperf;
 use ErikJwt\JWT as JWTInstance;
 use ErikJwt\JWTException;
 use Hyperf\Contract\ConfigInterface;
+use Hyperf\HttpServer\Contract\ResponseInterface as HttpResponseInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -23,11 +24,13 @@ class Middleware implements MiddlewareInterface
 {
     protected JWTInstance $jwt;
     protected ConfigInterface $config;
+    protected HttpResponseInterface $responseFactory;
 
-    public function __construct(JWTInstance $jwt, ConfigInterface $config)
+    public function __construct(JWTInstance $jwt, ConfigInterface $config, HttpResponseInterface $responseFactory)
     {
         $this->jwt    = $jwt;
         $this->config = $config;
+        $this->responseFactory = $responseFactory;
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
@@ -48,26 +51,22 @@ class Middleware implements MiddlewareInterface
         }
 
         if (empty($token)) {
-            $response = new \Hyperf\HttpMessage\Server\Response();
-            return $response
-                ->withHeader('Content-Type', 'application/json')
-                ->withStatus(401)
-                ->withBody(new \Hyperf\HttpMessage\Stream\SwooleStream(
-                    json_encode(['code' => 401, 'msg' => 'Token not provided', 'data' => null])
-                ));
+            return $this->responseFactory->json([
+                'code' => 401,
+                'msg'  => 'Token not provided',
+                'data' => null,
+            ])->withStatus(401);
         }
 
         try {
             $payload = $this->jwt->decode($token);
             $request = $request->withAttribute('jwt_payload', $payload);
         } catch (JWTException $e) {
-            $response = new \Hyperf\HttpMessage\Server\Response();
-            return $response
-                ->withHeader('Content-Type', 'application/json')
-                ->withStatus(401)
-                ->withBody(new \Hyperf\HttpMessage\Stream\SwooleStream(
-                    json_encode(['code' => 401, 'msg' => $e->getMessage(), 'data' => null])
-                ));
+            return $this->responseFactory->json([
+                'code' => 401,
+                'msg'  => $e->getMessage(),
+                'data' => null,
+            ])->withStatus(401);
         }
 
         return $handler->handle($request);
