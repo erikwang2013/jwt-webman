@@ -21,6 +21,11 @@ class DatabaseTokenStorage implements TokenStorageInterface
     {
         $this->pdo = $pdo;
         $this->tableName = $tableName;
+
+        if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $this->tableName)) {
+            throw JWTException::configError("Invalid table name: {$this->tableName}");
+        }
+
         $this->createTableIfNotExists();
     }
 
