@@ -1,34 +1,34 @@
 # erikwang2013/jwt-webman
 
-A JWT authentication plugin compatible with webman, Laravel, ThinkPHP, and Hyperf. Suitable for distributed deployment, with simple and fast installation.
+一款兼容 webman、Laravel、ThinkPHP、Hyperf 的 JWT 认证插件。适用于分布式部署，安装简单快捷。
 
-Author: [艾瑞可erik](https://erik.xyz)
+作者：[艾瑞可erik](https://erik.xyz)
 
-## Features
+## 功能特性
 
-- JWT token generation (HS256/HS384/HS512/RS256)
-- Token validation with time tolerance
-- Refresh token support
-- Token blacklist (redis, database, memcached, file)
-- Automatic retry on storage failure
-- Graceful degradation with fallback storage
-- Multi-framework deep integration: Middleware, Facade, InstallCommand
+- JWT 令牌生成（支持 HS256 / HS384 / HS512 / RS256 算法）
+- 令牌验证（支持时间容差 leeway）
+- 刷新令牌（Refresh Token）
+- 令牌黑名单（支持 redis、database、memcached、file 四种存储驱动）
+- 存储操作失败自动重试
+- 多存储后端优雅降级
+- 四框架深度集成：中间件、门面模式、安装命令
 
-## Installation
+## 安装
 
 ```sh
 composer require erikwang2013/jwt-webman
 ```
 
-## Framework Integration
+## 各框架使用说明
 
 ### Webman
 
-After `composer require`, the plugin auto-registers via webman's plugin system.
+`composer require` 后通过 webman 插件系统自动注册，无需手动配置。
 
-**Config:** `config/plugin/erikwang2013/jwt/jwt.php`
+**配置文件：** `config/plugin/erikwang2013/jwt/jwt.php`
 
-**Usage:**
+**基本用法：**
 
 ```php
 use ErikJwt\JWTFactory;
@@ -37,17 +37,22 @@ $jwt = JWTFactory::createFromConfig(
     config('plugin.erikwang2013.jwt.jwt'),
     null,
     [
-        'redis' => fn() => \support\Redis::class,
+        'redis' => fn() => \support\Redis::connection(),
         'pdo'   => \support\Db::connection()->getPdo(),
     ]
 );
 
-$token   = $jwt->encode(['user_id' => 1]);
+// 生成令牌
+$token = $jwt->encode(['user_id' => 1]);
+
+// 验证令牌
 $payload = $jwt->decode($token);
+
+// 拉黑令牌
 $jwt->blacklist($token);
 ```
 
-**Middleware:** Register in `config/middleware.php`:
+**中间件：** 在 `config/middleware.php` 中注册：
 
 ```php
 return [
@@ -57,11 +62,18 @@ return [
 ];
 ```
 
+在控制器中获取解析后的 payload：
+
+```php
+$payload = $request->jwt_payload;
+$userId  = $payload['user_id'];
+```
+
 ---
 
 ### Laravel
 
-After `composer require`, Laravel auto-discovers the ServiceProvider via `extra.laravel` in composer.json. If auto-discovery is disabled, add to `config/app.php`:
+`composer require` 后通过 `extra.laravel` 自动发现 ServiceProvider。如果关闭了自动发现，手动在 `config/app.php` 中注册：
 
 ```php
 'providers' => [
@@ -69,15 +81,17 @@ After `composer require`, Laravel auto-discovers the ServiceProvider via `extra.
 ],
 ```
 
-**Install:**
+**安装命令：**
 
 ```sh
 php artisan jwt:install
 ```
 
-**Config:** `config/jwt.php`
+执行后会自动发布配置文件并生成 `JWT_SECRET_KEY` 写入 `.env`。
 
-**Usage — Facade:**
+**配置文件：** `config/jwt.php`
+
+**门面方式：**
 
 ```php
 use ErikJwt\Laravel\Facade as JWT;
@@ -87,13 +101,13 @@ $payload = JWT::decode($token);
 JWT::blacklist($token);
 ```
 
-**Usage — Helper:**
+**辅助函数：**
 
 ```php
 $token = jwt()->encode(['user_id' => 1]);
 ```
 
-**Usage — Dependency Injection:**
+**依赖注入：**
 
 ```php
 use ErikJwt\JWT;
@@ -103,20 +117,22 @@ public function __construct(JWT $jwt) {
 }
 ```
 
-**Middleware:**
+**中间件：**
 
 ```php
+// 路由中使用
 Route::middleware('jwt')->group(function () {
     Route::get('/api/user', [UserController::class, 'index']);
 });
 
-// In controller
+// 控制器中获取 payload
 public function index(Request $request) {
     $payload = $request->attributes->get('jwt_payload');
+    $userId  = $payload['user_id'];
 }
 ```
 
-**Config publishing:**
+**手动发布配置：**
 
 ```sh
 php artisan vendor:publish --tag=jwt-config
@@ -126,7 +142,7 @@ php artisan vendor:publish --tag=jwt-config
 
 ### ThinkPHP
 
-Register the service in `app/service.php` after `composer require`:
+`composer require` 后在 `app/service.php` 中注册服务：
 
 ```php
 return [
@@ -134,15 +150,15 @@ return [
 ];
 ```
 
-**Install:**
+**安装命令：**
 
 ```sh
 php think jwt:install
 ```
 
-**Config:** `config/jwt.php`
+**配置文件：** `config/jwt.php`
 
-**Usage — Facade:**
+**门面方式：**
 
 ```php
 use ErikJwt\ThinkPHP\JWT;
@@ -151,22 +167,24 @@ $token   = JWT::encode(['user_id' => 1]);
 $payload = JWT::decode($token);
 ```
 
-**Usage — Helper:**
+**辅助函数：**
 
 ```php
 $token = jwt()->encode(['user_id' => 1]);
 ```
 
-**Middleware:**
+**中间件：**
 
 ```php
+// 路由中使用
 Route::group(function () {
     Route::get('/api/user', 'UserController@index');
 })->middleware('jwt');
 
-// In controller
+// 控制器中获取 payload
 public function index(Request $request) {
     $payload = $request->jwt_payload;
+    $userId  = $payload['user_id'];
 }
 ```
 
@@ -174,7 +192,7 @@ public function index(Request $request) {
 
 ### Hyperf
 
-After `composer require`, register ConfigProvider in `config/autoload/dependencies.php`:
+`composer require` 后在 `config/autoload/dependencies.php` 中注册 ConfigProvider：
 
 ```php
 return [
@@ -182,15 +200,15 @@ return [
 ];
 ```
 
-**Install:**
+**安装命令：**
 
 ```sh
 php bin/hyperf.php jwt:install
 ```
 
-**Config:** `config/autoload/jwt.php`
+**配置文件：** `config/autoload/jwt.php`
 
-**Usage — Dependency Injection:**
+**依赖注入：**
 
 ```php
 use ErikJwt\JWT;
@@ -207,9 +225,9 @@ class UserController {
 }
 ```
 
-**Middleware:** already registered by ConfigProvider in `config/autoload/middlewares.php`.
+**中间件：** ConfigProvider 已自动注册，在 `config/autoload/middlewares.php` 中配置即可。
 
-**AOP Annotation:**
+**AOP 注解方式（可选）：**
 
 ```php
 use ErikJwt\Hyperf\JWT as JWTAuth;
@@ -217,48 +235,68 @@ use ErikJwt\Hyperf\JWT as JWTAuth;
 class UserController {
     #[JWTAuth]
     public function index() {
-        // Auto validates JWT before execution
+        // 方法执行前自动校验 JWT
     }
 }
 ```
 
 ---
 
-## Config Reference
+## 配置文件参考
 
 ```php
 return [
+    // 签名密钥，至少16字符
     'secret_key'     => env('JWT_SECRET_KEY', ''),
+    // 签名算法：HS256 / HS384 / HS512 / RS256
     'algorithm'      => env('JWT_ALGORITHM', 'HS256'),
+    // 签发者标识
     'issuer'         => env('JWT_ISSUER', ''),
+    // 受众标识
     'audience'       => env('JWT_AUDIENCE', ''),
+    // 时间容差（秒），用于处理服务器时钟偏差
     'leeway'         => (int) env('JWT_LEEWAY', 0),
+    // 默认令牌过期时间（秒）
     'default_expire' => (int) env('JWT_DEFAULT_EXPIRE', 3600),
+    // 刷新令牌过期时间（秒）
     'refresh_expire' => (int) env('JWT_REFRESH_EXPIRE', 7200),
+    // 黑名单存储配置
     'storage' => [
+        // 存储类型：file / redis / database / memcached
         'type'     => env('JWT_STORAGE_TYPE', 'file'),
+        // 缓存键前缀
         'prefix'   => env('JWT_STORAGE_PREFIX', 'jwt_blacklist:'),
+        // Redis 数据库编号
         'database' => (int) env('JWT_STORAGE_DATABASE', 0),
     ],
+    // 高级配置
     'advanced' => [
+        // 操作失败重试次数
         'retry_attempts'   => (int) env('JWT_ADVANCED_RETRY_ATTEMPTS', 3),
+        // 重试延迟（毫秒）
         'retry_delay'      => (int) env('JWT_ADVANCED_RETRY_DELAY', 100),
+        // 是否自动清理过期条目
         'auto_cleanup'      => filter_var(env('JWT_AUTO_CLEANUP', false), FILTER_VALIDATE_BOOLEAN),
+        // 自动清理间隔（秒）
         'cleanup_interval'  => (int) env('JWT_CLEANUP_INTERVAL', 3600),
     ],
+    // 中间件配置
     'middleware' => [
+        // 排除的路由路径（正则），这些路径不校验 JWT
         'except' => [],
     ],
 ];
 ```
 
-| Storage Type | Best For |
-|-------------|----------|
-| `file` | Single-server, low traffic |
-| `redis` | Distributed, high performance |
-| `database` | Persistent, cross-datacenter |
-| `memcached` | High throughput, auto-expiry |
+## 存储驱动对比
 
-## License
+| 驱动 | 适用场景 |
+|------|----------|
+| `file` | 单机部署、低并发 |
+| `redis` | 分布式部署、高性能 |
+| `database` | 需要持久化、跨数据中心 |
+| `memcached` | 高吞吐量、自动过期 |
+
+## 开源协议
 
 MIT
