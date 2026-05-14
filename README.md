@@ -1,333 +1,264 @@
-## 简介 ##
-erikwang2013/jwt-webman是一款适配webman的jwt插件。
-主要是适用分布式部署，用于适配webman，安装简单快捷。
+# erikwang2013/jwt-webman
 
-## 作者博客 ##
-[艾瑞可erik](https://erik.xyz)
+A JWT authentication plugin compatible with webman, Laravel, ThinkPHP, and Hyperf. Suitable for distributed deployment, with simple and fast installation.
 
-## 安装 ##
+Author: [艾瑞可erik](https://erik.xyz)
 
+## Features
 
+- JWT token generation (HS256/HS384/HS512/RS256)
+- Token validation with time tolerance
+- Refresh token support
+- Token blacklist (redis, database, memcached, file)
+- Automatic retry on storage failure
+- Graceful degradation with fallback storage
+- Multi-framework deep integration: Middleware, Facade, InstallCommand
 
-Use [Composer](https://github.com/composer/composer):
+## Installation
+
 ```sh
 composer require erikwang2013/jwt-webman
 ```
 
+## Framework Integration
 
-## 使用示例 ##
+### Webman
 
+After `composer require`, the plugin auto-registers via webman's plugin system.
 
-```
+**Config:** `config/plugin/erikwang2013/jwt/jwt.php`
 
-use ErikJwt\Config;
+**Usage:**
+
+```php
 use ErikJwt\JWTFactory;
-use ErikJwt\JWTException;
 
-
-
-try {
-    // 创建JWT实例
-    $jwt = JWTFactory::createFromConfig();
-    
-    // 生成令牌
-    $token = $jwt->encode(['user_id' => 123, 'username' => 'testuser']);
-    echo "Token generated: " . substr($token, 0, 50) . "...\n";
-    
-
-    //生成刷新令牌
-    $refreshToken = $jwt->encode([
-        'user_id' => 123,
-        'token_type' => 'refresh'
-    ], 86400); // 24小时过期
-
-    // 验证令牌
-    $payload = $jwt->decode($token);
-   
-    echo "Token validated for user: " . $payload['username'] . "\n";
-    
-    //验证令牌状态
-    $jwt->validate($token);
-
-    // 将令牌加入黑名单
-    $jwt->blacklist($token);
-    echo "Token blacklisted\n";
-    
-    // 检查黑名单
-    if ($jwt->isBlacklisted($token)) {
-        echo "Token correctly identified as blacklisted\n";
-    }
-    
-} catch (JWTException $e) {
-    // 处理不同类型的异常
-    switch ($e->getCode()) {
-        case JWTException::STORAGE_ERROR:
-            echo "Storage error: " . $e->getMessage() . "\n";
-            // 可以回退到文件存储
-            $fallbackConfig = new Config([
-                'secret_key' => 'your-secret-key',
-                'storage' => ['type' => 'file']
-            ]);
-            $jwt = JWTFactory::createFromConfig($fallbackConfig);
-            echo "Fallback to file storage\n";
-            break;
-            
-        case JWTException::NETWORK_ERROR:
-            echo "Network error: " . $e->getMessage() . "\n";
-            // 记录日志，通知管理员等
-            break;
-            
-        case JWTException::CONFIG_ERROR:
-            echo "Configuration error: " . $e->getMessage() . "\n";
-            // 检查配置文件
-            break;
-            
-        default:
-            echo "JWT error: " . $e->getMessage() . "\n";
-            break;
-    }
-} catch (Exception $e) {
-    echo "Unexpected error: " . $e->getMessage() . "\n";
-}
-
-// 优雅降级示例
-function createJWTWithFallback(array $configs): \ErikJwt\JWT
-{
-    $lastException = null;
-    
-    foreach ($configs as $config) {
-        try {
-            return JWTFactory::createFromConfig(new \ErikJwt\Config($config));
-        } catch (JWTException $e) {
-            $lastException = $e;
-            // 继续尝试下一个配置
-            continue;
-        }
-    }
-    
-    // 所有配置都失败，抛出最后一个异常
-    throw $lastException;
-}
-
-// 使用多个存储后端配置
-$configs = [
+$jwt = JWTFactory::createFromConfig(
+    config('plugin.erikwang2013.jwt.jwt'),
+    null,
     [
-        'secret_key' => 'your-secret-key',
-        'storage' => [
-            'type' => 'redis',
-            'config' => [
-                'database' => 1,
-                'prefix' => 'prod:jwt:blacklist:',
-                'timeout' => 1.0,
-                'read_timeout' => 1.0,
-                'persistent' => true,
-                'persistent_id' => 'jwt_pool'
-            ]
-        ]
-    ],
-    [
-        'secret_key' => 'your-secret-key', 
-        'storage' => [
-            'type' => 'database',
-            'config' => [
-                'table_name' => 'user_token_blacklist',
-            ]
-        ]
-    ],
-    [
-        'secret_key' => 'your-secret-key',
-        'storage' => ['type' => 'file']
+        'redis' => fn() => \support\Redis::class,
+        'pdo'   => \support\Db::connection()->getPdo(),
     ]
-];
+);
 
-try {
-    $jwt = createJWTWithFallback($configs);
-    echo "JWT instance created successfully with fallback\n";
-} catch (Exception $e) {
-    echo "All storage backends failed: " . $e->getMessage() . "\n";
+$token   = $jwt->encode(['user_id' => 1]);
+$payload = $jwt->decode($token);
+$jwt->blacklist($token);
+```
+
+**Middleware:** Register in `config/middleware.php`:
+
+```php
+return [
+    '' => [
+        \ErikJwt\Webman\Middleware::class,
+    ],
+];
+```
+
+---
+
+### Laravel
+
+After `composer require`, Laravel auto-discovers the ServiceProvider via `extra.laravel` in composer.json. If auto-discovery is disabled, add to `config/app.php`:
+
+```php
+'providers' => [
+    ErikJwt\Laravel\JWTServiceProvider::class,
+],
+```
+
+**Install:**
+
+```sh
+php artisan jwt:install
+```
+
+**Config:** `config/jwt.php`
+
+**Usage — Facade:**
+
+```php
+use ErikJwt\Laravel\Facade as JWT;
+
+$token   = JWT::encode(['user_id' => 1]);
+$payload = JWT::decode($token);
+JWT::blacklist($token);
+```
+
+**Usage — Helper:**
+
+```php
+$token = jwt()->encode(['user_id' => 1]);
+```
+
+**Usage — Dependency Injection:**
+
+```php
+use ErikJwt\JWT;
+
+public function __construct(JWT $jwt) {
+    $this->jwt = $jwt;
 }
-
-
 ```
 
-## 配置文件 ##
+**Middleware:**
 
-仅供参考，根据实际配置。
+```php
+Route::middleware('jwt')->group(function () {
+    Route::get('/api/user', [UserController::class, 'index']);
+});
 
-- file
-
+// In controller
+public function index(Request $request) {
+    $payload = $request->attributes->get('jwt_payload');
+}
 ```
 
-<?php
-// config/development.php
+**Config publishing:**
 
+```sh
+php artisan vendor:publish --tag=jwt-config
+```
+
+---
+
+### ThinkPHP
+
+Register the service in `app/service.php` after `composer require`:
+
+```php
 return [
-    'secret_key' => 'dev-secret-key-change-in-production',
-    'algorithm' => 'HS256',
-    'issuer' => 'myapp-dev',
-    'audience' => 'dev-users',
-    'leeway' => 60,
-    'default_expire' => 7200, // 2小时
-    
+    \ErikJwt\ThinkPHP\JWTService::class,
+];
+```
+
+**Install:**
+
+```sh
+php think jwt:install
+```
+
+**Config:** `config/jwt.php`
+
+**Usage — Facade:**
+
+```php
+use ErikJwt\ThinkPHP\JWT;
+
+$token   = JWT::encode(['user_id' => 1]);
+$payload = JWT::decode($token);
+```
+
+**Usage — Helper:**
+
+```php
+$token = jwt()->encode(['user_id' => 1]);
+```
+
+**Middleware:**
+
+```php
+Route::group(function () {
+    Route::get('/api/user', 'UserController@index');
+})->middleware('jwt');
+
+// In controller
+public function index(Request $request) {
+    $payload = $request->jwt_payload;
+}
+```
+
+---
+
+### Hyperf
+
+After `composer require`, register ConfigProvider in `config/autoload/dependencies.php`:
+
+```php
+return [
+    \ErikJwt\Hyperf\ConfigProvider::class,
+];
+```
+
+**Install:**
+
+```sh
+php bin/hyperf.php jwt:install
+```
+
+**Config:** `config/autoload/jwt.php`
+
+**Usage — Dependency Injection:**
+
+```php
+use ErikJwt\JWT;
+use Hyperf\Di\Annotation\Inject;
+
+class UserController {
+    #[Inject]
+    protected JWT $jwt;
+
+    public function index() {
+        $token   = $this->jwt->encode(['user_id' => 1]);
+        $payload = $this->jwt->decode($token);
+    }
+}
+```
+
+**Middleware:** already registered by ConfigProvider in `config/autoload/middlewares.php`.
+
+**AOP Annotation:**
+
+```php
+use ErikJwt\Hyperf\JWT as JWTAuth;
+
+class UserController {
+    #[JWTAuth]
+    public function index() {
+        // Auto validates JWT before execution
+    }
+}
+```
+
+---
+
+## Config Reference
+
+```php
+return [
+    'secret_key'     => env('JWT_SECRET_KEY', ''),
+    'algorithm'      => env('JWT_ALGORITHM', 'HS256'),
+    'issuer'         => env('JWT_ISSUER', ''),
+    'audience'       => env('JWT_AUDIENCE', ''),
+    'leeway'         => (int) env('JWT_LEEWAY', 0),
+    'default_expire' => (int) env('JWT_DEFAULT_EXPIRE', 3600),
+    'refresh_expire' => (int) env('JWT_REFRESH_EXPIRE', 7200),
     'storage' => [
-        'type' => 'file',
-        'config' => [
-            'path' => __DIR__ . '/../storage/jwt',
-            'gc_probability' => 0.01
-        ]
+        'type'     => env('JWT_STORAGE_TYPE', 'file'),
+        'prefix'   => env('JWT_STORAGE_PREFIX', 'jwt_blacklist:'),
+        'database' => (int) env('JWT_STORAGE_DATABASE', 0),
     ],
-    
     'advanced' => [
-        'retry_attempts' => 1,
-        'auto_cleanup' => true
-    ]
-];
-
-```
-
-- redis
-
-```
-
-<?php
-// config/production.php
-
-return [
-    'secret_key' => getenv('JWT_SECRET_KEY'), // 从环境变量读取
-    'algorithm' => 'HS256',
-    'issuer' => 'myapp-prod',
-    'audience' => 'prod-users',
-    'leeway' => 30,
-    'default_expire' => 1800, // 30分钟
-    'refresh_expire' => 2592000, // 30天
-    
-    'storage' => [
-        'type' => 'redis',
-        'config' => [
-            'database' => 1,
-            'prefix' => 'prod:jwt:blacklist:',
-            'timeout' => 1.0,
-            'read_timeout' => 1.0,
-            'persistent' => true,
-            'persistent_id' => 'jwt_pool'
-        ]
+        'retry_attempts'   => (int) env('JWT_ADVANCED_RETRY_ATTEMPTS', 3),
+        'retry_delay'      => (int) env('JWT_ADVANCED_RETRY_DELAY', 100),
+        'auto_cleanup'      => filter_var(env('JWT_AUTO_CLEANUP', false), FILTER_VALIDATE_BOOLEAN),
+        'cleanup_interval'  => (int) env('JWT_CLEANUP_INTERVAL', 3600),
     ],
-    
-    'advanced' => [
-        'retry_attempts' => 3,
-        'retry_delay' => 200,
-        'auto_cleanup' => true,
-        'cleanup_interval' => 1800
-    ]
-];
-
-```
-
-- db
-
-```
-<?php
-// config/production_database.php
-
-return [
-    'secret_key' => getenv('JWT_SECRET_KEY'),
-    'algorithm' => 'HS256',
-    'default_expire' => 3600,
-    
-    'storage' => [
-        'type' => 'database',
-        'config' => [
-            'table_name' => 'user_token_blacklist',
-        ]
+    'middleware' => [
+        'except' => [],
     ],
-    
-    'advanced' => [
-        'retry_attempts' => 2,
-        'auto_cleanup' => true,
-        'cleanup_interval' => 3600
-    ]
 ];
-
 ```
 
-- 集群配置
+| Storage Type | Best For |
+|-------------|----------|
+| `file` | Single-server, low traffic |
+| `redis` | Distributed, high performance |
+| `database` | Persistent, cross-datacenter |
+| `memcached` | High throughput, auto-expiry |
 
-```
+## License
 
-<?php
-// config/cluster.php
-
-return [
-    'secret_key' => getenv('JWT_SECRET_KEY'),
-    'algorithm' => 'HS256',
-    'issuer' => 'cluster-app',
-    'leeway' => 10, // 集群环境时间同步较好，容差可以小一些
-    
-    'storage' => [
-        'type' => 'redis',
-        'config' => [
-            'prefix' => 'cluster:jwt:',
-            'timeout' => 0.5, // 集群环境降低超时时间
-            'read_timeout' => 0.5
-        ]
-    ],
-    
-    'advanced' => [
-        'retry_attempts' => 2,
-        'retry_delay' => 50, // 集群环境重试延迟更短
-        'auto_cleanup' => true
-    ]
-];
-
-```
-
-
-- 安全配置建议
-
-```
-
-<?php
-// 安全配置示例
-return [
-    'secret_key' => bin2hex(random_bytes(32)), // 生成32字节随机密钥
-    'algorithm' => 'HS256', // 使用安全的哈希算法
-    'default_expire' => 900, // 短期令牌，15分钟
-    'refresh_expire' => 604800, // 长期刷新令牌，7天
-    
-    'storage' => [
-        'type' => 'redis',
-        'config' => [
-            'database' => 5, // 使用专用数据库
-            'prefix' => 'secure:jwt:' // 唯一前缀
-        ]
-    ]
-];
-
-```
-
-- 性能优化建议
-
-```
-
-<?php
-// 高性能配置
-return [
-    'secret_key' => 'your-secret-key',
-    'leeway' => 5, // 减少时间容差
-    
-    'storage' => [
-        'type' => 'redis',
-        'config' => [
-            'persistent' => true, // 使用持久连接
-            'timeout' => 0.1, // 降低超时时间
-            'read_timeout' => 0.1
-        ]
-    ],
-    
-    'advanced' => [
-        'retry_attempts' => 1, // 减少重试次数
-        'retry_delay' => 10 // 减少重试延迟
-    ]
-];
-
-```
+MIT
