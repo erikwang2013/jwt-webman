@@ -40,7 +40,7 @@ class Middleware implements MiddlewareInterface
 
         try {
             $jwt = JWTFactory::createFromConfig($config, null, [
-                'redis' => fn() => \support\Redis::class,
+                'redis' => fn() => \support\Redis::connection(),
                 'pdo'   => \support\Db::connection()->getPdo(),
             ]);
             $payload = $jwt->decode($token);
