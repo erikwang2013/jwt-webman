@@ -12,7 +12,8 @@ namespace ErikJwt;
 use Exception;
 use Firebase\JWT\JWT as FirebaseJWT;
 use Firebase\JWT\Key;
-use support\Log;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 class JWT
 {
@@ -23,22 +24,20 @@ class JWT
     private $audience;
     private $leeway;
     private $config;
+    private $logger;
 
     public function __construct(
-        string $secretKey,
-        string $algorithm = 'HS256',
-        TokenStorageInterface $tokenStorage = null,
-        string $issuer = '',
-        string $audience = '',
-        int $leeway = 0
+        array $config,
+        ?LoggerInterface $logger = null
     ) {
-        $this->secretKey = $secretKey;
-        $this->algorithm = $algorithm;
-        $this->tokenStorage = $tokenStorage ?? new FileTokenStorage();
-        $this->issuer = $issuer;
-        $this->audience = $audience;
-        $this->leeway = $leeway;
-        $this->config = config('plugin.erikwang2013.jwt.jwt');
+        $this->config       = $config;
+        $this->secretKey    = $config['secret_key'] ?? '';
+        $this->algorithm    = $config['algorithm'] ?? 'HS256';
+        $this->issuer       = $config['issuer'] ?? '';
+        $this->audience     = $config['audience'] ?? '';
+        $this->leeway       = (int)($config['leeway'] ?? 0);
+        $this->tokenStorage = $config['_token_storage'] ?? new FileTokenStorage();
+        $this->logger       = $logger ?? new NullLogger();
     }
 
     /**
@@ -83,10 +82,10 @@ class JWT
 
             return $payload;
         } catch (JWTException $e) {
-            Log::error($e->getMessage());
+            $this->logger->error($e->getMessage());
             throw $e;
         } catch (\Exception $e) {
-            Log::error($e->getMessage());
+            $this->logger->error($e->getMessage());
             throw JWTException::invalid($e->getMessage());
         }
     }
@@ -100,7 +99,7 @@ class JWT
             $this->decode($token);
             return true;
         } catch (Exception $e) {
-            Log::error($e->getMessage());
+            $this->logger->error($e->getMessage());
             return false;
         }
     }
@@ -155,14 +154,14 @@ class JWT
                         return $this->tokenStorage->blacklist($payload['jti'], $payload['exp']);
                     }
                 } catch (Exception $e) {
-                    Log::error($e->getMessage());
+                    $this->logger->error($e->getMessage());
                     // 忽略解析错误
                 }
             }
-            Log::error($e->getMessage());
+            $this->logger->error($e->getMessage());
             return false;
         } catch (Exception $e) {
-            Log::error($e->getMessage());
+            $this->logger->error($e->getMessage());
             return false;
         }
     }
@@ -176,13 +175,13 @@ class JWT
             $payload = $this->decode($token);
             return isset($payload['jti']) && $this->tokenStorage->isBlacklisted($payload['jti']);
         } catch (JWTException $e) {
-            Log::error($e->getMessage());
+            $this->logger->error($e->getMessage());
             if ($e->getCode() === JWTException::TOKEN_BLACKLISTED) {
                 return true;
             }
             return false;
         } catch (\Exception $e) {
-            Log::error($e->getMessage());
+            $this->logger->error($e->getMessage());
             return false;
         }
     }
