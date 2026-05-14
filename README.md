@@ -4,6 +4,47 @@
 
 作者：[艾瑞可erik](https://erik.xyz)
 
+## 项目说明
+
+`erikwang2013/jwt-webman` 是一个 PHP 多框架 JWT 认证插件，核心基于 `firebase/php-jwt` 封装。
+
+### 定位
+
+传统的 JWT 插件通常只绑定单一框架，在微服务或多项目架构中，不同框架之间需要各自对接不同的 JWT 实现，造成维护成本和认证逻辑不一致的风险。
+
+本插件将核心逻辑与框架完全解耦，通过「一套核心 + 框架适配层」的架构，在 webman、Laravel、ThinkPHP、Hyperf 中提供一致的 API 体验。无论后端服务使用哪个框架，JWT 的编码、解码、刷新、黑名单逻辑完全一致，只需按照各框架的习惯方式进行配置和注入即可。
+
+### 架构
+
+```
+src/erik-jwt/
+├── JWT.php                   ← 核心：令牌编解码、刷新、黑名单
+├── JWTFactory.php            ← 核心：工厂类，根据配置创建实例
+├── Config.php                ← 核心：框架无关的配置容器
+├── TokenStorageInterface.php ← 核心：存储抽象接口
+├── RedisTokenStorage.php     ← 黑名单存储：Redis（注入 callable 连接）
+├── DatabaseTokenStorage.php  ← 黑名单存储：数据库（注入 PDO 连接）
+├── FileTokenStorage.php      ← 黑名单存储：文件系统
+├── MemcachedTokenStorage.php ← 黑名单存储：Memcached
+├── RetryTokenStorage.php     ← 装饰器：操作失败自动重试
+├── JWTException.php          ← 异常层级：过期/无效/黑名单/存储/配置/网络
+│
+├── Webman/    → Middleware
+├── Laravel/   → ServiceProvider / Facade / Middleware / InstallCommand
+├── ThinkPHP/  → Service / Facade / Middleware / InstallCommand
+└── Hyperf/    → ConfigProvider / Middleware / AOP Aspect / #[JWT] Attribute
+```
+
+核心层不依赖任何框架 helper，所有外部依赖（配置、日志、数据库连接、Redis 连接）通过构造函数或工厂方法注入。每个框架的适配层负责从框架容器中获取这些依赖，组装后传入核心工厂。
+
+### 设计理念
+
+- **框架无关核心**：核心代码零框架依赖，可在任何 PHP 7.4+ 项目中使用
+- **原生深度集成**：每个框架适配层遵循各自的插件规范和惯用写法，而非生硬地统一封装
+- **统一配置格式**：四个框架共用一套配置结构，仅环境变量读取方式略有不同
+- **存储驱动可插拔**：黑名单支持 file / redis / database / memcached 四种后端，通过配置切换
+- **渐进式接入**：可从最简单的 file 存储起步，业务增长后无缝切换到 redis 或 database
+
 ## 功能特性
 
 - JWT 令牌生成（支持 HS256 / HS384 / HS512 / RS256 算法）
