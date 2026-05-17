@@ -41,13 +41,13 @@
     },
     "extra": {
         "laravel": {
-            "providers": ["Erikwang2013\Jwt\\Laravel\\JWTServiceProvider"],
-            "aliases": {"JWT": "Erikwang2013\Jwt\\Laravel\\Facade"}
+            "providers": ["Erikwang2013\\Jwt\\Laravel\\JWTServiceProvider"],
+            "aliases": {"JWT": "Erikwang2013\\Jwt\\Laravel\\Facade"}
         }
     },
     "autoload": {
         "psr-4": {
-            "Erikwang2013\Jwt\\": "src/erik-jwt"
+            "Erikwang2013\\Jwt\\": "src/erik-jwt"
         }
     },
     "repositories": {
