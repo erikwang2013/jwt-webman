@@ -19,6 +19,7 @@
 ```
 src/erik-jwt/
 ├── JWT.php                   ← 核心：令牌编解码、刷新、黑名单
+├── JwtWrapper.php            ← 核心：JWT 便捷封装，自动获取 Bearer Token
 ├── JWTFactory.php            ← 核心：工厂类，根据配置创建实例
 ├── Config.php                ← 核心：框架无关的配置容器
 ├── TokenStorageInterface.php ← 核心：存储抽象接口
@@ -60,6 +61,53 @@ src/erik-jwt/
 ```sh
 composer require erikwang2013/jwt-webman
 ```
+
+## JwtWrapper 便捷封装
+
+自 `v1.1.0` 起，提供了一个 `JwtWrapper` 便捷封装类，简化常见操作并支持自动从请求头获取 Token：
+
+```php
+use Erikwang2013\Jwt\JwtWrapper;
+
+$jwt = new JwtWrapper(JWTFactory::createFromConfig(
+    config('plugin.erikwang2013.jwt.jwt'),
+    null,
+    [
+        'redis' => fn() => \support\Redis::connection(),
+        'pdo'   => \support\Db::connection()->getPdo(),
+    ]
+));
+
+// 生成令牌
+$token = $jwt->create(['user_id' => 1]);
+
+// 生成令牌并指定过期时间（秒）
+$token = $jwt->create(['user_id' => 1], 7200);
+
+// 验证令牌，返回 payload 对象
+$payload = $jwt->verify($token);
+echo $payload->user_id;
+
+// 仅验证不返回 payload
+if ($jwt->validate($token)) { ... }
+
+// 解码令牌（不校验有效性）
+$data = $jwt->decode($token);
+
+// 刷新令牌（自动从 Authorization 头获取当前 token）
+$newToken = $jwt->refresh();
+
+// 或手动传入 token 刷新
+$newToken = $jwt->refresh($oldToken);
+
+// 拉黑令牌
+$jwt->blacklist($token);
+
+// 检查令牌是否在黑名单
+if ($jwt->isBlacklisted($token)) { ... }
+```
+
+适用所有框架，只需将 `JWTFactory::createFromConfig()` 替换为对应框架的创建方式即可。
 
 ## 各框架使用说明
 
