@@ -1,1 +1,9 @@
 vendor/
+/.phpunit.cache/
+composer.lock
+.phpunit.result.cache
+.claude
+.claude-flow
+.swarm
+.mcp.json
+ruvector.db

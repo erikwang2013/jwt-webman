@@ -28,8 +28,12 @@ class JWTFactory
         array $connections = []
     ): JWT {
         $secretKey = $config['secret_key'] ?? '';
-        if (empty($secretKey) || strlen($secretKey) < 16) {
-            throw JWTException::configError('Secret key must be at least 16 characters');
+        // firebase/php-jwt v7 requires HS256 keys >= 256 bits (32 bytes)
+        $minKeyLength = 32;
+        if (empty($secretKey) || strlen($secretKey) < $minKeyLength) {
+            throw JWTException::configError(
+                "Secret key must be at least {$minKeyLength} characters (256 bits) for HS256"
+            );
         }
 
         $tokenStorage = self::createTokenStorage($config, $connections);

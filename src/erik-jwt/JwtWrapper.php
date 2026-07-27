@@ -6,7 +6,12 @@ namespace Erikwang2013\Jwt;
 
 class JwtWrapper
 {
-    public function __construct(private JWT $jwt) {}
+    private $jwt;
+
+    public function __construct(JWT $jwt)
+    {
+        $this->jwt = $jwt;
+    }
 
     public function create(array $payload, int $expire = 0): string
     {
@@ -23,7 +28,9 @@ class JwtWrapper
 
     public function verify(string $token): object
     {
-        $this->jwt->validate($token);
+        if (!$this->jwt->validate($token)) {
+            throw JWTException::invalid('Token validation failed');
+        }
         return (object) $this->jwt->decode($token);
     }
 
@@ -50,7 +57,7 @@ class JwtWrapper
     private function currentToken(): string
     {
         $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-        if (str_starts_with($header, 'Bearer ')) {
+        if (strpos($header, 'Bearer ') === 0) {
             return substr($header, 7);
         }
         return '';

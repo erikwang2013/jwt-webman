@@ -206,8 +206,13 @@ class JWT
             throw new JWTException('Invalid token structure');
         }
 
-        $payload = base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1]));
-        $result = json_decode($payload, true);
+        $payload = $parts[1];
+        $remainder = strlen($payload) % 4;
+        if ($remainder) {
+            $payload .= str_repeat('=', 4 - $remainder);
+        }
+        $decoded = base64_decode(str_replace(['-', '_'], ['+', '/'], $payload));
+        $result = json_decode($decoded, true);
         return is_array($result) ? $result : [];
     }
 
