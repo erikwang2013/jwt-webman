@@ -59,4 +59,23 @@ class ConfigTest extends TestCase
         $config = new Config(['a' => ['b' => 'c']]);
         $this->assertSame('default', $config->get('a.b.c.d', 'default'));
     }
+
+    public function testFromFile(): void
+    {
+        $path = sys_get_temp_dir() . '/jwt_config_test_' . bin2hex(random_bytes(4)) . '.php';
+        file_put_contents($path, '<?php return ["key" => "from-file", "nested" => ["a" => 1]];');
+        try {
+            $config = Config::fromFile($path);
+            $this->assertSame('from-file', $config->get('key'));
+            $this->assertSame(1, $config->get('nested.a'));
+        } finally {
+            unlink($path);
+        }
+    }
+
+    public function testFromFileNotFoundThrows(): void
+    {
+        $this->expectException(\Erikwang2013\Jwt\JWTException::class);
+        Config::fromFile('/nonexistent/path/config.php');
+    }
 }

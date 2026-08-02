@@ -109,7 +109,7 @@ class JWT
             $this->decode($token);
             return true;
         } catch (Exception $e) {
-            $this->logger->error($e->getMessage());
+            $this->logger->warning($e->getMessage());
             return false;
         }
     }
@@ -163,9 +163,8 @@ class JWT
                     if (isset($payload['jti']) && isset($payload['exp'])) {
                         return $this->tokenStorage->blacklist($payload['jti'], $payload['exp']);
                     }
-                } catch (Exception $e) {
-                    $this->logger->error($e->getMessage());
-                    // 忽略解析错误
+                } catch (JWTException $e) {
+                    $this->logger->warning($e->getMessage());
                 }
             }
             $this->logger->error($e->getMessage());

@@ -143,12 +143,8 @@ class FileTokenStorage implements TokenStorageInterface
      */
     private function unlinkAsync(string $filePath): void
     {
-        if (function_exists('exec') && stripos(PHP_OS, 'WIN') !== 0) {
-            // Linux/Unix 系统使用后台删除
-            exec("rm -f " . escapeshellarg($filePath) . " > /dev/null 2>&1 &");
-        } else {
-            // Windows 或其他系统直接删除
-            @unlink($filePath);
+        if (!@unlink($filePath)) {
+            error_log("JWT: Failed to remove expired blacklist file: {$filePath}");
         }
     }
 

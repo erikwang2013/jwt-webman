@@ -51,9 +51,7 @@ class RedisTokenStorage implements TokenStorageInterface
         }
 
         if (!$this->connected) {
-            $this->connectionChecked = false;
             $this->checkConnection();
-            $this->connectionChecked = true;
         }
 
         if (!$this->connected) {

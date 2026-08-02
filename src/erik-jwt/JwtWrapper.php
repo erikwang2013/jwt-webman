@@ -57,9 +57,13 @@ class JwtWrapper
     private function currentToken(): string
     {
         $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+        if (empty($header) && function_exists('getallheaders')) {
+            $headers = getallheaders();
+            $header = $headers['Authorization'] ?? '';
+        }
         if (strpos($header, 'Bearer ') === 0) {
             return substr($header, 7);
         }
-        return '';
+        throw JWTException::invalid('No Bearer token found in request');
     }
 }

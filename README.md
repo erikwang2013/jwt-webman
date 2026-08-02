@@ -386,11 +386,40 @@ return [
 | `database` | 需要持久化、跨数据中心 |
 | `memcached` | 高吞吐量、自动过期 |
 
-## 开源不易，欢迎支持
+## 注意事项
 
-| 微信 | 支付宝 |
+### Leeway 静态属性
+
+`firebase/php-jwt` 的 `$leeway` 是全局静态属性。同一进程中若存在多个不同 leeway 配置的 JWT 实例，后面的调用会覆盖前面的值。如需在同一应用中使用不同 leeway，请确保所有 JWT 实例使用相同的 leeway 配置。
+
+### 常驻进程中的自动清理
+
+`auto_cleanup` 使用 `register_shutdown_function` 实现，在传统 PHP-FPM 模式下工作正常。但在 **webman**（Workerman）和 **Hyperf**（Swoole/Swow）等常驻内存进程中，shutdown 函数仅在 worker 进程退出时触发，不会在每个请求后执行。
+
+在常驻进程模式下，建议通过框架自身的定时器机制定期调用清理：
+
+**Webman（Cron 定时任务）:**
+```php
+// config/plugin/webman/cron/app.php
+\Erikwang2013\Jwt\JWT::class => [
+    'handler' => function ($jwt) { $jwt->cleanup(); },
+    'rule' => '0 */1 * * *', // 每小时执行一次
+],
+```
+
+**Hyperf（Crontab 注解）:**
+```php
+use Hyperf\Crontab\Annotation\Crontab;
+
+#[Crontab(name: 'JwtCleanup', rule: '0 */1 * * *')]
+public function cleanup(): void { $this->jwt->cleanup(); }
+```
+
+## 开源不易，欢迎支持 | Open Source is Not Easy, Your Support is Welcome
+
+| 微信 WeChat | 支付宝 Alipay |
 |:---:|:---:|
-| ![微信](./docs/weixinpay.png "微信") | ![支付宝](./docs/alipay.png "支付宝") |
+| <img src="./docs/weixinpay.png" width="130" height="130" alt="微信 WeChat"> | <img src="./docs/alipay.png" width="130" height="130" alt="支付宝 Alipay"> |
 
 ---
 
