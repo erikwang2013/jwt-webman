@@ -28,6 +28,10 @@ class MemcachedTokenStorage implements TokenStorageInterface
 
     public function blacklist(string $jti, int $expireTime): bool
     {
+        if (!ctype_xdigit($jti)) {
+            throw JWTException::storageError('Invalid JTI format');
+        }
+
         try {
             $now = time();
             $ttl = $expireTime - $now;
@@ -45,6 +49,10 @@ class MemcachedTokenStorage implements TokenStorageInterface
 
     public function isBlacklisted(string $jti): bool
     {
+        if (!ctype_xdigit($jti)) {
+            throw JWTException::storageError('Invalid JTI format');
+        }
+
         try {
             $key = $this->prefix . $jti;
             $result = $this->memcached->get($key);

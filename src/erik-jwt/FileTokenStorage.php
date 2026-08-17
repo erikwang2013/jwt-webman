@@ -23,7 +23,7 @@ class FileTokenStorage implements TokenStorageInterface
 
 
         if (!is_dir($this->storagePath)) {
-            if (!mkdir($this->storagePath, 0755, true)) {
+            if (!mkdir($this->storagePath, 0700, true)) {
                 throw JWTException::storageError("Cannot create storage directory: {$this->storagePath}");
             }
         }
@@ -87,8 +87,8 @@ class FileTokenStorage implements TokenStorageInterface
 
         // 检查是否过期
         if (time() > $data['expire_time']) {
-            // 异步删除过期文件（不阻塞当前请求）
-            $this->unlinkAsync($filePath);
+            // 删除过期文件
+            $this->deleteExpiredFile($filePath);
             return false;
         }
 
@@ -138,12 +138,9 @@ class FileTokenStorage implements TokenStorageInterface
         }
     }
 
-    /**
-     * 异步删除文件（避免阻塞）
-     */
-    private function unlinkAsync(string $filePath): void
+    private function deleteExpiredFile(string $filePath): void
     {
-        if (!@unlink($filePath)) {
+        if (!unlink($filePath)) {
             error_log("JWT: Failed to remove expired blacklist file: {$filePath}");
         }
     }

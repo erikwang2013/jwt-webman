@@ -105,6 +105,9 @@ class JWTFactory
     {
         $memcached = $connections['memcached'] ?? null;
         if (!$memcached instanceof Memcached) {
+            if (!class_exists(\Memcached::class)) {
+                throw JWTException::storageError('ext-memcached is required for memcached storage');
+            }
             $memcached = new Memcached();
             $servers = $config['servers'] ?? [['127.0.0.1', 11211]];
             $memcached->addServers($servers);
@@ -136,12 +139,6 @@ class JWTFactory
      */
     private static function setupAutoCleanup(JWT $jwt, array $advancedConfig): void
     {
-        static $registered = false;
-        if ($registered) {
-            return;
-        }
-        $registered = true;
-
         $cleanupInterval = $advancedConfig['cleanup_interval'] ?? 3600;
 
         register_shutdown_function(function () use ($jwt, $cleanupInterval) {

@@ -26,8 +26,12 @@ class Middleware
         $except = $config['middleware']['except'] ?? [];
         $path   = $request->pathinfo();
         foreach ($except as $pattern) {
-            if (preg_match('#^' . $pattern . '$#', $path)) {
-                return $next($request);
+            try {
+                if (preg_match('#^' . $pattern . '$#', $path)) {
+                    return $next($request);
+                }
+            } catch (\Throwable $e) {
+                error_log('JWT middleware: invalid except pattern "' . $pattern . '": ' . $e->getMessage());
             }
         }
 
@@ -44,7 +48,12 @@ class Middleware
             $payload = $jwt->decode($token);
             $request->jwt_payload = $payload;
         } catch (JWTException $e) {
-            return json(['code' => 401, 'msg' => $e->getMessage(), 'data' => null])->code(401);
+            $msg = in_array($e->getCode(), [
+                JWTException::TOKEN_EXPIRED,
+                JWTException::TOKEN_INVALID,
+                JWTException::TOKEN_BLACKLISTED,
+            ], true) ? $e->getMessage() : 'Token authentication failed';
+            return json(['code' => 401, 'msg' => $msg, 'data' => null])->code(401);
         }
 
         return $next($request);

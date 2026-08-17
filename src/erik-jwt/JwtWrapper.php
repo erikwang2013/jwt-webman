@@ -28,10 +28,11 @@ class JwtWrapper
 
     public function verify(string $token): object
     {
-        if (!$this->jwt->validate($token)) {
+        try {
+            return (object) $this->jwt->decode($token);
+        } catch (\Exception $e) {
             throw JWTException::invalid('Token validation failed');
         }
-        return (object) $this->jwt->decode($token);
     }
 
     public function decode(string $token): array
@@ -59,9 +60,9 @@ class JwtWrapper
         $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
         if (empty($header) && function_exists('getallheaders')) {
             $headers = getallheaders();
-            $header = $headers['Authorization'] ?? '';
+            $header = $headers['Authorization'] ?? $headers['authorization'] ?? '';
         }
-        if (strpos($header, 'Bearer ') === 0) {
+        if (strncasecmp($header, 'Bearer ', 7) === 0) {
             return substr($header, 7);
         }
         throw JWTException::invalid('No Bearer token found in request');

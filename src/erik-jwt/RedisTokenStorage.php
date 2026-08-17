@@ -33,7 +33,8 @@ class RedisTokenStorage implements TokenStorageInterface
     private function checkConnection(): void
     {
         try {
-            $this->connected = ($this->redisResolver)()->ping() === true;
+            $pong = ($this->redisResolver)()->ping();
+            $this->connected = ($pong === true || $pong === 'PONG' || $pong === '+PONG');
         } catch (Exception $e) {
             $this->connected = false;
             throw JWTException::storageError('Redis connection failed: ' . $e->getMessage());
@@ -61,8 +62,12 @@ class RedisTokenStorage implements TokenStorageInterface
 
     public function blacklist(string $jti, int $expireTime): bool
     {
+        if (!ctype_xdigit($jti)) {
+            throw JWTException::storageError('Invalid JTI format');
+        }
+
         $this->ensureConnection();
-        
+
         try {
             $now = time();
             $ttl = $expireTime - $now;
@@ -86,8 +91,12 @@ class RedisTokenStorage implements TokenStorageInterface
 
     public function isBlacklisted(string $jti): bool
     {
+        if (!ctype_xdigit($jti)) {
+            throw JWTException::storageError('Invalid JTI format');
+        }
+
         $this->ensureConnection();
-        
+
         try {
             $key = $this->prefix . $jti;
             $exists = ($this->redisResolver)()->exists($key);

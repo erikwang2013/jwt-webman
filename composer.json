@@ -13,7 +13,7 @@
     ],
     "type": "library",
     "license": "MIT",
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "authors": [
         {
             "name": "erik",
@@ -28,7 +28,7 @@
         "source": "https://github.com/erikwang2013/jwt-webman"
     },
     "require": {
-        "php": ">=7.4",
+        "php": ">=8.0",
         "firebase/php-jwt": "^7.0",
         "psr/log": "^1.0 | ^2.0 | ^3.0",
         "ext-json": "*"
@@ -48,7 +48,11 @@
     "autoload": {
         "psr-4": {
             "Erikwang2013\\Jwt\\": "src/erik-jwt"
-        }
+        },
+        "files": [
+            "src/erik-jwt/Laravel/helpers.php",
+            "src/erik-jwt/ThinkPHP/helpers.php"
+        ]
     },
     "repositories": {
         "packagist": {

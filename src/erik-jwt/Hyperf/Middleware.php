@@ -40,8 +40,12 @@ class Middleware implements MiddlewareInterface
         $except = $config['middleware']['except'] ?? [];
         $path   = $request->getUri()->getPath();
         foreach ($except as $pattern) {
-            if (preg_match('#^' . $pattern . '$#', $path)) {
-                return $handler->handle($request);
+            try {
+                if (preg_match('#^' . $pattern . '$#', $path)) {
+                    return $handler->handle($request);
+                }
+            } catch (\Throwable $e) {
+                error_log('JWT middleware: invalid except pattern "' . $pattern . '": ' . $e->getMessage());
             }
         }
 
@@ -62,9 +66,14 @@ class Middleware implements MiddlewareInterface
             $payload = $this->jwt->decode($token);
             $request = $request->withAttribute('jwt_payload', $payload);
         } catch (JWTException $e) {
+            $msg = in_array($e->getCode(), [
+                JWTException::TOKEN_EXPIRED,
+                JWTException::TOKEN_INVALID,
+                JWTException::TOKEN_BLACKLISTED,
+            ], true) ? $e->getMessage() : 'Token authentication failed';
             return $this->responseFactory->json([
                 'code' => 401,
-                'msg'  => $e->getMessage(),
+                'msg'  => $msg,
                 'data' => null,
             ])->withStatus(401);
         }

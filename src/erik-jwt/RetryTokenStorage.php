@@ -79,9 +79,10 @@ class RetryTokenStorage implements TokenStorageInterface
             }
         }
         
-        throw JWTException::storageError(
-            "Operation {$operationName} failed after {$this->maxRetries} attempts: " . 
-            $lastException->getMessage()
-        );
+        $message = "Operation {$operationName} failed after {$this->maxRetries} attempts";
+        if ($lastException !== null) {
+            $message .= ': ' . $lastException->getMessage();
+        }
+        throw JWTException::storageError($message);
     }
 }

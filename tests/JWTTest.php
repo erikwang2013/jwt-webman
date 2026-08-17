@@ -4,6 +4,7 @@ namespace Erikwang2013\Jwt\Tests;
 use Erikwang2013\Jwt\JWT;
 use Erikwang2013\Jwt\JWTException;
 use Erikwang2013\Jwt\FileTokenStorage;
+use Firebase\JWT\JWT as FirebaseJWT;
 use PHPUnit\Framework\TestCase;
 
 class JWTTest extends TestCase
@@ -109,8 +110,7 @@ class JWTTest extends TestCase
     public function testDecodeExpiredTokenThrows(): void
     {
         $jwt = new JWT($this->validConfig);
-        $past = time() - 7200;
-        $token = $jwt->encode(['uid' => 1, 'iat' => $past, 'nbf' => $past, 'exp' => $past + 3600]);
+        $token = $jwt->encode(['uid' => 1], -7200);
 
         $this->expectException(JWTException::class);
         $this->expectExceptionCode(JWTException::TOKEN_EXPIRED);
@@ -146,7 +146,7 @@ class JWTTest extends TestCase
     public function testRefresh(): void
     {
         $jwt = new JWT($this->validConfig);
-        $token = $jwt->encode(['uid' => 1]);
+        $token = $jwt->encode(['uid' => 1, 'token_type' => 'refresh']);
         $newToken = $jwt->refresh($token, 3600);
 
         $this->assertNotSame($token, $newToken);
@@ -157,7 +157,7 @@ class JWTTest extends TestCase
     public function testRefreshBlacklistsOldToken(): void
     {
         $jwt = new JWT($this->validConfig);
-        $token = $jwt->encode(['uid' => 1]);
+        $token = $jwt->encode(['uid' => 1, 'token_type' => 'refresh']);
         $jwt->refresh($token);
 
         $this->assertTrue($jwt->isBlacklisted($token));
@@ -215,5 +215,97 @@ class JWTTest extends TestCase
     {
         $jwt = new JWT($this->validConfig);
         $this->assertFalse($jwt->isBlacklisted('invalid.token.here'));
+    }
+
+    public function testDecodeRejectsWrongIssuer(): void
+    {
+        $config = $this->validConfig;
+        $config['issuer'] = 'issuer-a';
+        $jwt = new JWT($config);
+        $token = FirebaseJWT::encode(
+            ['uid' => 1, 'exp' => time() + 3600, 'iss' => 'issuer-b'],
+            $config['secret_key'],
+            'HS256'
+        );
+
+        $this->expectException(JWTException::class);
+        $this->expectExceptionCode(JWTException::TOKEN_INVALID);
+        $jwt->decode($token);
+    }
+
+    public function testDecodeAcceptsMatchingIssuer(): void
+    {
+        $config = $this->validConfig;
+        $config['issuer'] = 'issuer-a';
+        $jwt = new JWT($config);
+        $token = $jwt->encode(['uid' => 1]);
+        $payload = $jwt->decode($token);
+        $this->assertSame('issuer-a', $payload['iss']);
+    }
+
+    public function testDecodeRejectsWrongAudience(): void
+    {
+        $config = $this->validConfig;
+        $config['audience'] = 'audience-a';
+        $jwt = new JWT($config);
+        $token = FirebaseJWT::encode(
+            ['uid' => 1, 'exp' => time() + 3600, 'aud' => 'audience-b'],
+            $config['secret_key'],
+            'HS256'
+        );
+
+        $this->expectException(JWTException::class);
+        $this->expectExceptionCode(JWTException::TOKEN_INVALID);
+        $jwt->decode($token);
+    }
+
+    public function testDecodeAcceptsMatchingAudience(): void
+    {
+        $config = $this->validConfig;
+        $config['audience'] = 'audience-a';
+        $jwt = new JWT($config);
+        $token = $jwt->encode(['uid' => 1]);
+        $payload = $jwt->decode($token);
+        $this->assertSame('audience-a', $payload['aud']);
+    }
+
+    public function testEmptyIssuerConfigAllowsMissingIss(): void
+    {
+        $config = $this->validConfig;
+        $config['issuer'] = '';
+        $config['audience'] = '';
+        $jwt = new JWT($config);
+        $token = FirebaseJWT::encode(
+            ['uid' => 1, 'exp' => time() + 3600],
+            $config['secret_key'],
+            'HS256'
+        );
+        $payload = $jwt->decode($token);
+        $this->assertSame(1, $payload['uid']);
+    }
+
+    public function testEncodeIgnoresProtectedClaims(): void
+    {
+        $jwt = new JWT($this->validConfig);
+        $token = $jwt->encode(['uid' => 1, 'exp' => time() + 999999, 'jti' => 'aaaa']);
+        $payload = $jwt->decode($token);
+
+        $expected = time() + $this->validConfig['default_expire'];
+        $this->assertGreaterThanOrEqual($expected - 5, $payload['exp']);
+        $this->assertLessThanOrEqual($expected + 5, $payload['exp']);
+        $this->assertNotSame('aaaa', $payload['jti']);
+        $this->assertSame(32, strlen($payload['jti']));
+        $this->assertTrue(ctype_xdigit($payload['jti']));
+    }
+
+    public function testRefreshRejectsAccessToken(): void
+    {
+        $jwt = new JWT($this->validConfig);
+        $token = $jwt->encode(['uid' => 1]);
+
+        $this->expectException(JWTException::class);
+        $this->expectExceptionCode(JWTException::TOKEN_INVALID);
+        $this->expectExceptionMessage('Only refresh tokens can be refreshed');
+        $jwt->refresh($token);
     }
 }

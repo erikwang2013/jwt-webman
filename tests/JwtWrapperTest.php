@@ -99,7 +99,7 @@ class JwtWrapperTest extends TestCase
 
     public function testRefresh(): void
     {
-        $token = $this->jwt->create(['uid' => 1]);
+        $token = $this->jwt->create(['uid' => 1, 'token_type' => 'refresh']);
         $newToken = $this->jwt->refresh($token);
         $this->assertNotSame($token, $newToken);
         $payload = $this->jwt->decode($newToken);
@@ -108,7 +108,7 @@ class JwtWrapperTest extends TestCase
 
     public function testRefreshBlacklistsOldToken(): void
     {
-        $token = $this->jwt->create(['uid' => 1]);
+        $token = $this->jwt->create(['uid' => 1, 'token_type' => 'refresh']);
         $this->jwt->refresh($token);
         $this->assertTrue($this->jwt->isBlacklisted($token));
     }
@@ -122,7 +122,7 @@ class JwtWrapperTest extends TestCase
 
     public function testRefreshWithBearerHeader(): void
     {
-        $token = $this->jwt->create(['uid' => 1]);
+        $token = $this->jwt->create(['uid' => 1, 'token_type' => 'refresh']);
         $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
         $newToken = $this->jwt->refresh();
         $this->assertNotSame($token, $newToken);

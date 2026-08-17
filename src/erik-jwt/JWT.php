@@ -66,7 +66,7 @@ class JWT
             'jti' => $this->generateJti()
         ];
 
-        $finalPayload = array_merge($defaultPayload, $payload);
+        $finalPayload = array_merge($payload, $defaultPayload);
 
         return FirebaseJWT::encode($finalPayload, $this->secretKey, $this->algorithm, null, $headers);
     }
@@ -83,16 +83,22 @@ class JWT
             FirebaseJWT::$leeway = $this->leeway;
             $decoded = FirebaseJWT::decode($token, new Key($this->secretKey, $this->algorithm));
             $payload = (array) $decoded;
+            if ($this->issuer !== '' && ($payload['iss'] ?? null) !== $this->issuer) {
+                throw JWTException::invalid('Invalid issuer');
+            }
+            if ($this->audience !== '' && ($payload['aud'] ?? null) !== $this->audience) {
+                throw JWTException::invalid('Invalid audience');
+            }
             if (isset($payload['jti']) && $this->tokenStorage->isBlacklisted($payload['jti'])) {
                 throw JWTException::blacklisted();
             }
 
             return $payload;
         } catch (JWTException $e) {
-            $this->logger->error($e->getMessage());
+            $this->logger->info($e->getMessage());
             throw $e;
         } catch (ExpiredException $e) {
-            $this->logger->error($e->getMessage());
+            $this->logger->info($e->getMessage());
             throw JWTException::expired();
         } catch (\Exception $e) {
             $this->logger->error($e->getMessage());
@@ -120,6 +126,10 @@ class JWT
     public function refresh(string $token, int $newExpire = 3600): string
     {
         $payload = $this->decode($token);
+
+        if (($payload['token_type'] ?? '') !== 'refresh') {
+            throw JWTException::invalid('Only refresh tokens can be refreshed');
+        }
 
         // 将原令牌加入黑名单
         if (isset($payload['jti'])) {
@@ -164,6 +174,9 @@ class JWT
                         return $this->tokenStorage->blacklist($payload['jti'], $payload['exp']);
                     }
                 } catch (JWTException $e) {
+                    if ($e->getCode() === JWTException::STORAGE_ERROR) {
+                        throw $e;
+                    }
                     $this->logger->warning($e->getMessage());
                 }
             }
