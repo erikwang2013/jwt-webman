@@ -16,6 +16,8 @@ use Psr\Container\ContainerInterface;
 
 class InstallCommand extends Command
 {
+    protected $container;
+
     public function __construct(ContainerInterface $container)
     {
         parent::__construct('jwt:install');

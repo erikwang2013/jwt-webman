@@ -48,6 +48,12 @@ class ConfigTest extends TestCase
         $this->expectException(\Erikwang2013\Jwt\JWTException::class);
         $config->set('a.b', 'value');
     }
+    public function testSetOverwritesArrayValue(): void
+    {
+        $config = new Config(['a' => ['b' => 1]]);
+        $config->set('a', 'x');
+        $this->assertSame('x', $config->get('a'));
+    }
     public function testToArray(): void
     {
         $data = ['foo' => 'bar'];

@@ -308,4 +308,41 @@ class JWTTest extends TestCase
         $this->expectExceptionMessage('Only refresh tokens can be refreshed');
         $jwt->refresh($token);
     }
+
+    public function testDecodeWithLeewayAcceptsRecentlyExpiredToken(): void
+    {
+        $config = $this->validConfig;
+        $config['leeway'] = 60;
+        $jwt = new JWT($config);
+        $token = $jwt->encode(['uid' => 1], -30);
+        $payload = $jwt->decode($token);
+        $this->assertSame(1, $payload['uid']);
+    }
+
+    public function testBlacklistTokenWithoutJtiReturnsFalse(): void
+    {
+        $jwt = new JWT($this->validConfig);
+        $token = FirebaseJWT::encode(
+            ['uid' => 1, 'exp' => time() + 3600, 'iss' => 'test-issuer', 'aud' => 'test-audience'],
+            $this->validConfig['secret_key'],
+            'HS256'
+        );
+        $this->assertFalse($jwt->blacklist($token));
+    }
+
+    public function testBlacklistExpiredTokenReturnsTrue(): void
+    {
+        $jwt = new JWT($this->validConfig);
+        $token = $jwt->encode(['uid' => 1], -7200);
+        $this->assertTrue($jwt->blacklist($token));
+    }
+
+    public function testIsBlacklistedExpiredBlacklistedTokenReturnsFalse(): void
+    {
+        // An expired token is reported as expired, not as blacklisted
+        $jwt = new JWT($this->validConfig);
+        $token = $jwt->encode(['uid' => 1], -7200);
+        $this->assertTrue($jwt->blacklist($token));
+        $this->assertFalse($jwt->isBlacklisted($token));
+    }
 }

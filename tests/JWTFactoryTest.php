@@ -90,4 +90,120 @@ class JWTFactoryTest extends TestCase
         $jwt = JWTFactory::createFromConfig($config);
         $this->assertInstanceOf(JWT::class, $jwt);
     }
+
+    public function testMemcachedStorageWithoutExtensionThrows(): void
+    {
+        if (class_exists('Memcached')) {
+            $this->markTestSkipped('Memcached extension available');
+        }
+        $config = $this->baseConfig;
+        $config['storage']['type'] = 'memcached';
+        $this->expectException(JWTException::class);
+        $this->expectExceptionCode(JWTException::STORAGE_ERROR);
+        JWTFactory::createFromConfig($config);
+    }
+
+    public function testRedisStorageWithResolverWorks(): void
+    {
+        $config = $this->baseConfig;
+        $config['storage']['type'] = 'redis';
+        $redis = new class {
+            public $data = [];
+            public function ping() { return 'PONG'; }
+            public function setex($k, $t, $v) { $this->data[$k] = $v; return true; }
+            public function exists($k) { return isset($this->data[$k]) ? 1 : 0; }
+        };
+        $jwt = JWTFactory::createFromConfig($config, null, ['redis' => fn () => $redis]);
+        $token = $jwt->encode(['uid' => 8]);
+        $this->assertSame(8, $jwt->decode($token)['uid']);
+        $jwt->blacklist($token);
+        $this->assertTrue($jwt->isBlacklisted($token));
+    }
+
+    public function testRedisStorageUsesPrefixFromConfig(): void
+    {
+        $config = $this->baseConfig;
+        $config['storage']['type'] = 'redis';
+        $config['storage']['prefix'] = 'mybl:';
+        $redis = new class {
+            public $keys = [];
+            public function ping() { return 'PONG'; }
+            public function setex($k, $t, $v) { $this->keys[] = $k; return true; }
+            public function exists($k) { return 0; }
+        };
+        $jwt = JWTFactory::createFromConfig($config, null, ['redis' => fn () => $redis]);
+        $token = $jwt->encode(['uid' => 8]);
+        $jwt->blacklist($token);
+        $this->assertStringStartsWith('mybl:', $redis->keys[0]);
+    }
+
+    public function testDatabaseStorageWithPdoWorks(): void
+    {
+        $config = $this->baseConfig;
+        $config['storage']['type'] = 'database';
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $jwt = JWTFactory::createFromConfig($config, null, ['pdo' => $pdo]);
+        $token = $jwt->encode(['uid' => 8]);
+        $this->assertSame(8, $jwt->decode($token)['uid']);
+        $jwt->blacklist($token);
+        $this->assertTrue($jwt->isBlacklisted($token));
+    }
+
+    public function testDatabaseStorageWithCustomTableName(): void
+    {
+        $config = $this->baseConfig;
+        $config['storage']['type'] = 'database';
+        $config['storage']['config']['table_name'] = 'custom_bl';
+        $pdo = new \PDO('sqlite::memory:');
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $jwt = JWTFactory::createFromConfig($config, null, ['pdo' => $pdo]);
+        $token = $jwt->encode(['uid' => 8]);
+        $jwt->blacklist($token);
+        $this->assertTrue($jwt->isBlacklisted($token));
+        $stmt = $pdo->query("SELECT COUNT(*) FROM custom_bl");
+        $this->assertSame(1, (int) $stmt->fetchColumn());
+    }
+
+    public function testRetryWrapperIsAppliedWhenRetryAttemptsGreaterThanOne(): void
+    {
+        $config = $this->baseConfig;
+        $config['advanced']['retry_attempts'] = 3;
+        $jwt = JWTFactory::createFromConfig($config);
+        $property = new \ReflectionProperty(JWT::class, 'tokenStorage');
+        $property->setAccessible(true);
+        $this->assertInstanceOf(\Erikwang2013\Jwt\RetryTokenStorage::class, $property->getValue($jwt));
+        $token = $jwt->encode(['uid' => 8]);
+        $this->assertSame(8, $jwt->decode($token)['uid']);
+    }
+
+    public function testFileStorageWithCustomPath(): void
+    {
+        $dir = sys_get_temp_dir() . '/jwt_factory_' . bin2hex(random_bytes(6));
+        mkdir($dir, 0755, true);
+        try {
+            $config = $this->baseConfig;
+            $config['storage']['path'] = $dir;
+            $jwt = JWTFactory::createFromConfig($config);
+            $token = $jwt->encode(['uid' => 8]);
+            $jwt->blacklist($token);
+            $this->assertTrue($jwt->isBlacklisted($token));
+            $this->assertNotEmpty(glob($dir . '/*.json'));
+        } finally {
+            foreach (glob($dir . '/*.json') ?: [] as $f) {
+                unlink($f);
+            }
+            rmdir($dir);
+        }
+    }
+
+    public function testAutoCleanupEnabledDoesNotBreakCreation(): void
+    {
+        $config = $this->baseConfig;
+        $config['advanced']['auto_cleanup'] = true;
+        $jwt = JWTFactory::createFromConfig($config);
+        $this->assertInstanceOf(JWT::class, $jwt);
+        $token = $jwt->encode(['uid' => 8]);
+        $this->assertSame(8, $jwt->decode($token)['uid']);
+    }
 }

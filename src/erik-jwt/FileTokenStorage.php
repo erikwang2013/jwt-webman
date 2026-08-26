@@ -17,7 +17,7 @@ class FileTokenStorage implements TokenStorageInterface
     private $storagePath;
     private $gcProbability = 0.1; // 10% 的概率执行垃圾回收
 
-    public function __construct(string $storagePath = null)
+    public function __construct(?string $storagePath = null)
     {
         $this->storagePath = $storagePath ?? sys_get_temp_dir() . '/jwt_blacklist';
 
