@@ -15,7 +15,7 @@ namespace Erikwang2013\Jwt;
 class FileTokenStorage implements TokenStorageInterface
 {
     private $storagePath;
-    private $gcProbability = 0.1; // 10% 的概率执行垃圾回收
+    private $gcProbability = 0.1;
 
     public function __construct(?string $storagePath = null)
     {
@@ -40,7 +40,7 @@ class FileTokenStorage implements TokenStorageInterface
         $ttl = $expireTime - $now;
 
         if ($ttl <= 0) {
-            return true; // 已经过期的令牌不需要加入黑名单
+            return true;
         }
 
         $filePath = $this->getFilePath($jti);
@@ -50,13 +50,15 @@ class FileTokenStorage implements TokenStorageInterface
             'created_at' => $now
         ];
 
-        $result = file_put_contents($filePath, json_encode($data), LOCK_EX);
+        // Atomic write: temp file + rename so concurrent reads never see a truncated JSON
+        $tmpFile = $filePath . '.tmp.' . bin2hex(random_bytes(4));
+        $result  = file_put_contents($tmpFile, json_encode($data), LOCK_EX);
 
-        if ($result === false) {
+        if ($result === false || !rename($tmpFile, $filePath)) {
+            @unlink($tmpFile);
             throw JWTException::storageError("Failed to write blacklist file: {$filePath}");
         }
 
-        // 随机执行垃圾回收
         $this->garbageCollection();
 
         return true;
@@ -65,17 +67,7 @@ class FileTokenStorage implements TokenStorageInterface
     public function isBlacklisted(string $jti): bool
     {
         $filePath = $this->getFilePath($jti);
-
-        if (!file_exists($filePath)) {
-            return false;
-        }
-
-        // 检查文件是否可读
-        if (!is_readable($filePath)) {
-            return false;
-        }
-
-        $content = file_get_contents($filePath);
+        $content  = @file_get_contents($filePath);
         if ($content === false) {
             return false;
         }
@@ -85,9 +77,7 @@ class FileTokenStorage implements TokenStorageInterface
             return false;
         }
 
-        // 检查是否过期
-        if (time() > $data['expire_time']) {
-            // 删除过期文件
+        if (time() > ($data['expire_time'] ?? 0)) {
             $this->deleteExpiredFile($filePath);
             return false;
         }
@@ -97,7 +87,7 @@ class FileTokenStorage implements TokenStorageInterface
 
     public function cleanup(): bool
     {
-        $files = glob($this->storagePath . '/*.json');
+        $files = glob($this->storagePath . '/*.json') ?: [];
         $now = time();
         $cleaned = 0;
 
@@ -112,7 +102,7 @@ class FileTokenStorage implements TokenStorageInterface
             }
 
             $data = json_decode($content, true);
-            if ($data && $now > $data['expire_time']) {
+            if ($data && $now > ($data['expire_time'] ?? 0)) {
                 if (unlink($file)) {
                     $cleaned++;
                 }
@@ -175,7 +165,7 @@ class FileTokenStorage implements TokenStorageInterface
 
             $data = json_decode($content, true);
             if ($data) {
-                if ($now > $data['expire_time']) {
+                if ($now > ($data['expire_time'] ?? 0)) {
                     $expired++;
                 } else {
                     $valid++;

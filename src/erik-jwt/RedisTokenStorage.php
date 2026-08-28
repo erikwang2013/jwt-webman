@@ -12,14 +12,11 @@ declare(strict_types=1);
 
 namespace Erikwang2013\Jwt;
 
-use Exception;
-
 class RedisTokenStorage implements TokenStorageInterface
 {
     private $prefix;
     private $redisResolver;
-    private $connected = false;
-    private $connectionChecked = false;
+    private $redis = null;
 
     public function __construct(callable $redisResolver, string $prefix = 'jwt_blacklist:')
     {
@@ -27,37 +24,24 @@ class RedisTokenStorage implements TokenStorageInterface
         $this->redisResolver = $redisResolver;
     }
 
-    /**
-     * 检查Redis连接
-     */
-    private function checkConnection(): void
+    private function redis()
     {
+        if ($this->redis !== null) {
+            return $this->redis;
+        }
+
         try {
-            $pong = ($this->redisResolver)()->ping();
-            $this->connected = ($pong === true || $pong === 'PONG' || $pong === '+PONG');
-        } catch (Exception $e) {
-            $this->connected = false;
+            $redis = ($this->redisResolver)();
+            $pong  = $redis->ping();
+        } catch (\Throwable $e) {
             throw JWTException::storageError('Redis connection failed: ' . $e->getMessage());
         }
-    }
 
-    /**
-     * 确保连接正常
-     */
-    private function ensureConnection(): void
-    {
-        if (!$this->connectionChecked) {
-            $this->checkConnection();
-            $this->connectionChecked = true;
+        if ($pong !== true && $pong !== 'PONG' && $pong !== '+PONG') {
+            throw JWTException::storageError('Redis connection failed: unexpected ping response');
         }
 
-        if (!$this->connected) {
-            $this->checkConnection();
-        }
-
-        if (!$this->connected) {
-            throw JWTException::storageError('Redis is not connected');
-        }
+        return $this->redis = $redis;
     }
 
     public function blacklist(string $jti, int $expireTime): bool
@@ -66,25 +50,23 @@ class RedisTokenStorage implements TokenStorageInterface
             throw JWTException::storageError('Invalid JTI format');
         }
 
-        $this->ensureConnection();
+        $now = time();
+        $ttl = $expireTime - $now;
+        if ($ttl <= 0) {
+            return true;
+        }
 
         try {
-            $now = time();
-            $ttl = $expireTime - $now;
-            
-            if ($ttl <= 0) {
-                return true; // 已经过期的令牌不需要加入黑名单
-            }
-
-            $key = $this->prefix . $jti;
-            $result = ($this->redisResolver)()->setex($key, $ttl, '1');
-            
+            $result = $this->redis()->setex($this->prefix . $jti, $ttl, '1');
             if ($result === false) {
                 throw JWTException::storageError('Failed to blacklist token in Redis');
             }
-            
             return $result;
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
+            $this->redis = null;
+            if ($e instanceof JWTException) {
+                throw $e;
+            }
             throw JWTException::storageError('Redis blacklist operation failed: ' . $e->getMessage());
         }
     }
@@ -95,20 +77,13 @@ class RedisTokenStorage implements TokenStorageInterface
             throw JWTException::storageError('Invalid JTI format');
         }
 
-        $this->ensureConnection();
-
         try {
-            $key = $this->prefix . $jti;
-            $exists = ($this->redisResolver)()->exists($key);
-            
-            // 处理不同版本的Redis exists方法返回值
-            if (is_bool($exists)) {
-                return $exists;
+            return (bool) $this->redis()->exists($this->prefix . $jti);
+        } catch (\Throwable $e) {
+            $this->redis = null;
+            if ($e instanceof JWTException) {
+                throw $e;
             }
-            
-            // Redis >= 5.0.0 返回整数
-            return (bool) $exists;
-        } catch (Exception $e) {
             throw JWTException::storageError('Redis blacklist check failed: ' . $e->getMessage());
         }
     }
@@ -119,30 +94,27 @@ class RedisTokenStorage implements TokenStorageInterface
         return true;
     }
 
-    /**
-     * 获取Redis连接状态
-     */
     public function isConnected(): bool
     {
-        return $this->connected;
+        return $this->redis !== null;
     }
 
-    /**
-     * 重新连接Redis
-     */
     public function reconnect(): bool
     {
         try {
-            $redis = ($this->redisResolver)();
-            if (method_exists($redis, 'close')) {
-                $redis->close();
+            if ($this->redis !== null && method_exists($this->redis, 'close')) {
+                $this->redis->close();
             }
-            $this->connected = false;
-            $this->connectionChecked = false;
-            $this->checkConnection();
-            $this->connectionChecked = true;
-            return $this->connected;
-        } catch (Exception $e) {
+            $this->redis = null;
+            $redis = ($this->redisResolver)();
+            $pong  = $redis->ping();
+            if ($pong !== true && $pong !== 'PONG' && $pong !== '+PONG') {
+                return false;
+            }
+            $this->redis = $redis;
+            return true;
+        } catch (\Throwable $e) {
+            $this->redis = null;
             throw JWTException::storageError('Redis reconnection failed: ' . $e->getMessage());
         }
     }

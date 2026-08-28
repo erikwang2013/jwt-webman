@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Erikwang2013\Jwt\Hyperf;
 
 use Erikwang2013\Jwt\JWTException;
+use Erikwang2013\Jwt\MiddlewareSupport;
 use Hyperf\Context\Context;
 use Hyperf\Di\Annotation\Aspect;
 use Hyperf\Di\Aop\AbstractAspect;
@@ -23,6 +24,8 @@ use Psr\Container\ContainerInterface;
 #[Aspect]
 class JWTAspect extends AbstractAspect
 {
+    use MiddlewareSupport;
+
     public array $annotations = [
         JWT::class,
     ];
@@ -40,19 +43,13 @@ class JWTAspect extends AbstractAspect
         $config = $this->container->get(\Hyperf\Contract\ConfigInterface::class)->get('jwt', []);
 
         $except = $config['middleware']['except'] ?? [];
-        $path   = $this->request->getUri()->getPath();
-        foreach ($except as $pattern) {
-            if (preg_match('#^' . $pattern . '$#', $path)) {
-                return $proceedingJoinPoint->process();
-            }
+        if (self::matchesExcept($except, $this->request->getUri()->getPath())) {
+            return $proceedingJoinPoint->process();
         }
 
-        $token = $this->request->getHeaderLine('Authorization');
-        if (strpos($token, 'Bearer ') === 0) {
-            $token = substr($token, 7);
-        }
+        $token = \Erikwang2013\Jwt\JWT::bearerToken($this->request->getHeaderLine('Authorization'));
 
-        if (empty($token)) {
+        if ($token === '') {
             return $this->response->json([
                 'code' => 401, 'msg' => 'Token not provided', 'data' => null
             ])->withStatus(401);
@@ -63,7 +60,7 @@ class JWTAspect extends AbstractAspect
             Context::set('jwt_payload', $payload);
         } catch (JWTException $e) {
             return $this->response->json([
-                'code' => 401, 'msg' => $e->getMessage(), 'data' => null
+                'code' => 401, 'msg' => JWTException::userMessage($e), 'data' => null
             ])->withStatus(401);
         }
 

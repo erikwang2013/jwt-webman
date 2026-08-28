@@ -42,6 +42,11 @@ class JWT
         $this->leeway       = (int)($config['leeway'] ?? 0);
         $this->tokenStorage = $config['_token_storage'] ?? new FileTokenStorage();
         $this->logger       = $logger ?? new NullLogger();
+
+        // firebase/php-jwt v7 rejects keys shorter than 32 bytes
+        if (strlen($this->secretKey) < 32) {
+            throw JWTException::configError('Secret key must be at least 32 characters (256 bits)');
+        }
     }
 
     /**
@@ -73,20 +78,28 @@ class JWT
 
     /**
      * 解码并验证JWT令牌
-     *
-     * 注意：FirebaseJWT::$leeway 是全局静态属性。同一进程中若存在
-     * 多个不同 leeway 的 JWT 实例，后面的调用会覆盖前面的值。
      */
     public function decode(string $token): array
     {
+        // FirebaseJWT::$leeway is a global static — restore it or concurrent JWT instances clash
+        $previousLeeway = FirebaseJWT::$leeway;
         try {
             FirebaseJWT::$leeway = $this->leeway;
+            return $this->decodeWithLeeway($token);
+        } finally {
+            FirebaseJWT::$leeway = $previousLeeway;
+        }
+    }
+
+    private function decodeWithLeeway(string $token): array
+    {
+        try {
             $decoded = FirebaseJWT::decode($token, new Key($this->secretKey, $this->algorithm));
             $payload = (array) $decoded;
             if ($this->issuer !== '' && ($payload['iss'] ?? null) !== $this->issuer) {
                 throw JWTException::invalid('Invalid issuer');
             }
-            if ($this->audience !== '' && ($payload['aud'] ?? null) !== $this->audience) {
+            if ($this->audience !== '' && !$this->audMatches($payload['aud'] ?? null)) {
                 throw JWTException::invalid('Invalid audience');
             }
             if (isset($payload['jti']) && $this->tokenStorage->isBlacklisted($payload['jti'])) {
@@ -104,6 +117,14 @@ class JWT
             $this->logger->error($e->getMessage());
             throw JWTException::invalid($e->getMessage());
         }
+    }
+
+    private function audMatches($payloadAud): bool
+    {
+        if (is_array($payloadAud)) {
+            return in_array($this->audience, $payloadAud, true);
+        }
+        return $payloadAud === $this->audience;
     }
 
     /**
@@ -131,12 +152,10 @@ class JWT
             throw JWTException::invalid('Only refresh tokens can be refreshed');
         }
 
-        // 将原令牌加入黑名单
         if (isset($payload['jti'])) {
             $this->tokenStorage->blacklist($payload['jti'], $payload['exp']);
         }
 
-        // 移除时间相关字段
         unset($payload['iat'], $payload['nbf'], $payload['exp'], $payload['jti']);
 
         return $this->encode($payload, $newExpire);
@@ -190,17 +209,16 @@ class JWT
 
     /**
      * 检查令牌是否在黑名单中
+     *
+     * 只按 jti 查黑名单，不验证签名（单次存储读取）。安全关键的校验路径请先 decode()。
      */
     public function isBlacklisted(string $token): bool
     {
         try {
-            $payload = $this->decode($token);
+            $payload = $this->getPayloadWithoutValidation($token);
             return isset($payload['jti']) && $this->tokenStorage->isBlacklisted($payload['jti']);
         } catch (JWTException $e) {
             $this->logger->error($e->getMessage());
-            if ($e->getCode() === JWTException::TOKEN_BLACKLISTED) {
-                return true;
-            }
             return false;
         } catch (\Exception $e) {
             $this->logger->error($e->getMessage());
@@ -234,6 +252,31 @@ class JWT
     public function setTokenStorage(TokenStorageInterface $tokenStorage): void
     {
         $this->tokenStorage = $tokenStorage;
+    }
+
+    public static function bearerToken($header): string
+    {
+        if (is_string($header) && strncasecmp($header, 'Bearer ', 7) === 0) {
+            return substr($header, 7);
+        }
+        return '';
+    }
+
+    public static function writeEnvSecret(string $envPath, string $key, string $secret): void
+    {
+        if (!file_exists($envPath)) {
+            return;
+        }
+        $envContent = file_get_contents($envPath);
+        $pattern    = '/^' . preg_quote($key, '/') . '=.*$/m';
+        if (preg_match($pattern, $envContent)) {
+            // Escape $ in the replacement so secrets containing $0/$1 are not mangled
+            $replacement = str_replace('$', '\\$', $key . '=' . $secret);
+            $envContent  = preg_replace($pattern, $replacement, $envContent) ?? $envContent;
+        } else {
+            $envContent .= "\n{$key}={$secret}\n";
+        }
+        file_put_contents($envPath, $envContent, LOCK_EX);
     }
 
     /**

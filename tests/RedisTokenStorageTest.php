@@ -125,7 +125,7 @@ class RedisTokenStorageTest extends TestCase
         } catch (JWTException $e) {
             $this->assertSame(JWTException::STORAGE_ERROR, $e->getCode());
         }
-        $this->assertSame(2, $redis->pingCalls);
+        $this->assertSame(1, $redis->pingCalls);
     }
 
     public function testFailedPingThrowsOnBlacklist(): void
@@ -262,6 +262,7 @@ class RedisTokenStorageTest extends TestCase
     {
         $redis = $this->makeRedis('PONG');
         $storage = new RedisTokenStorage(fn () => $redis);
+        $storage->blacklist('a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6', time() + 3600);
         $storage->reconnect();
         $this->assertSame(1, $redis->closeCalls);
     }

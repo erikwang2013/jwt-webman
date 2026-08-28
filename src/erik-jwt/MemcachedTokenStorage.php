@@ -35,13 +35,24 @@ class MemcachedTokenStorage implements TokenStorageInterface
         try {
             $now = time();
             $ttl = $expireTime - $now;
-            
+
             if ($ttl <= 0) {
                 return true;
             }
 
+            // Memcached treats TTLs over 30 days as absolute Unix timestamps
+            if ($ttl > 2592000) {
+                $ttl += $now;
+            }
+
             $key = $this->prefix . $jti;
-            return $this->memcached->set($key, '1', $ttl);
+            $result = $this->memcached->set($key, '1', $ttl);
+            if ($result === false || $this->memcached->getResultCode() !== \Memcached::RES_SUCCESS) {
+                throw JWTException::storageError('Memcached error: ' . $this->memcached->getResultMessage());
+            }
+            return true;
+        } catch (JWTException $e) {
+            throw $e;
         } catch (Exception $e) {
             throw JWTException::storageError('Memcached operation failed: ' . $e->getMessage());
         }

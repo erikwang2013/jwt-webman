@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Erikwang2013\Jwt\Laravel;
 
+use Erikwang2013\Jwt\JWT;
 use Illuminate\Console\Command;
 
 class InstallCommand extends Command
@@ -23,21 +24,7 @@ class InstallCommand extends Command
         $this->call('vendor:publish', ['--tag' => 'jwt-config']);
 
         $secretKey = bin2hex(random_bytes(32));
-        $envPath   = base_path('.env');
-
-        if (file_exists($envPath)) {
-            $envContent = file_get_contents($envPath);
-            if (strpos($envContent, 'JWT_SECRET_KEY=') !== false) {
-                $envContent = preg_replace(
-                    '/^JWT_SECRET_KEY=.*$/m',
-                    'JWT_SECRET_KEY=' . $secretKey,
-                    $envContent
-                );
-            } else {
-                $envContent .= "\nJWT_SECRET_KEY={$secretKey}\n";
-            }
-            file_put_contents($envPath, $envContent);
-        }
+        JWT::writeEnvSecret(base_path('.env'), 'JWT_SECRET_KEY', $secretKey);
 
         $this->info('JWT plugin installed successfully!');
         $this->info("JWT_SECRET_KEY: {$secretKey}");

@@ -119,6 +119,6 @@ class WebmanMiddlewareTest extends TestCase
     {
         $method = new \ReflectionMethod(Middleware::class, 'getJWT');
         $method->setAccessible(true);
-        return $method->invoke(null);
+        return $method->invoke(null, $GLOBALS['__jwt_fw']['config']['plugin']['erikwang2013']['jwt']['jwt']);
     }
 }

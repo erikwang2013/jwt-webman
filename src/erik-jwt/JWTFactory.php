@@ -27,15 +27,6 @@ class JWTFactory
         ?LoggerInterface $logger = null,
         array $connections = []
     ): JWT {
-        $secretKey = $config['secret_key'] ?? '';
-        // firebase/php-jwt v7 requires HS256 keys >= 256 bits (32 bytes)
-        $minKeyLength = 32;
-        if (empty($secretKey) || strlen($secretKey) < $minKeyLength) {
-            throw JWTException::configError(
-                "Secret key must be at least {$minKeyLength} characters (256 bits) for HS256"
-            );
-        }
-
         $tokenStorage = self::createTokenStorage($config, $connections);
         $advancedConfig = $config['advanced'] ?? [];
         $retryAttempts = (int)($advancedConfig['retry_attempts'] ?? 3);

@@ -12,33 +12,27 @@ declare(strict_types=1);
 namespace Erikwang2013\Jwt\Laravel;
 
 use Closure;
+use Erikwang2013\Jwt\JWT;
 use Erikwang2013\Jwt\JWTException;
+use Erikwang2013\Jwt\MiddlewareSupport;
 use Illuminate\Http\Request;
 
 class Middleware
 {
+    use MiddlewareSupport;
+
     public function handle(Request $request, Closure $next)
     {
         $jwt = app('erik.jwt');
 
         $except = config('jwt.middleware.except', []);
-        $path   = $request->path();
-        foreach ($except as $pattern) {
-            try {
-                if (preg_match('#^' . $pattern . '$#', $path)) {
-                    return $next($request);
-                }
-            } catch (\Throwable $e) {
-                error_log('JWT middleware: invalid except pattern "' . $pattern . '": ' . $e->getMessage());
-            }
+        if (self::matchesExcept($except, $request->path())) {
+            return $next($request);
         }
 
-        $token = $request->header('Authorization', '');
-        if (strpos($token, 'Bearer ') === 0) {
-            $token = substr($token, 7);
-        }
+        $token = JWT::bearerToken($request->header('Authorization', ''));
 
-        if (empty($token)) {
+        if ($token === '') {
             return response()->json([
                 'code' => 401, 'msg' => 'Token not provided', 'data' => null
             ], 401);
@@ -48,13 +42,8 @@ class Middleware
             $payload = $jwt->decode($token);
             $request->attributes->set('jwt_payload', $payload);
         } catch (JWTException $e) {
-            $msg = in_array($e->getCode(), [
-                JWTException::TOKEN_EXPIRED,
-                JWTException::TOKEN_INVALID,
-                JWTException::TOKEN_BLACKLISTED,
-            ], true) ? $e->getMessage() : 'Token authentication failed';
             return response()->json([
-                'code' => 401, 'msg' => $msg, 'data' => null
+                'code' => 401, 'msg' => JWTException::userMessage($e), 'data' => null
             ], 401);
         }
 

@@ -77,12 +77,12 @@ class ThinkPHPInstallCommandTest extends TestCase
         $this->assertStringContainsString('JWT.SECRET_KEY', file_get_contents($dest));
 
         $envContent = file_get_contents($this->rootDir . '/.env');
-        $this->assertMatchesRegularExpression('/^JWT\.SECRET_KEY=[0-9a-f]{64}$/m', $envContent);
+        $this->assertMatchesRegularExpression('/^JWT_SECRET_KEY=[0-9a-f]{64}$/m', $envContent);
         $this->assertStringContainsString('OTHER=1', $envContent);
 
         $output = implode("\n", $GLOBALS['__jwt_fw']['outputs']);
         $this->assertStringContainsString('Config published to', $output);
-        $this->assertMatchesRegularExpression('/JWT\.SECRET_KEY: [0-9a-f]{64}/', $output);
+        $this->assertMatchesRegularExpression('/JWT_SECRET_KEY: [0-9a-f]{64}/', $output);
     }
 
     public function testExecuteWithoutEnvFileDoesNotCrash(): void
@@ -105,12 +105,12 @@ class ThinkPHPInstallCommandTest extends TestCase
 
     public function testExecuteReplacesExistingSecretKey(): void
     {
-        file_put_contents($this->rootDir . '/.env', "JWT.SECRET_KEY=old\nOTHER=1\n");
+        file_put_contents($this->rootDir . '/.env', "JWT_SECRET_KEY=old\nOTHER=1\n");
         $command = new InstallCommand();
         $this->invokeCommand($command);
 
         $content = file_get_contents($this->rootDir . '/.env');
-        $this->assertMatchesRegularExpression('/^JWT\.SECRET_KEY=[0-9a-f]{64}$/m', $content);
+        $this->assertMatchesRegularExpression('/^JWT_SECRET_KEY=[0-9a-f]{64}$/m', $content);
         $this->assertStringNotContainsString('old', $content);
         $this->assertStringContainsString('OTHER=1', $content);
     }

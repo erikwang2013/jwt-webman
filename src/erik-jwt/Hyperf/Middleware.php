@@ -13,6 +13,7 @@ namespace Erikwang2013\Jwt\Hyperf;
 
 use Erikwang2013\Jwt\JWT as JWTInstance;
 use Erikwang2013\Jwt\JWTException;
+use Erikwang2013\Jwt\MiddlewareSupport;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\HttpServer\Contract\ResponseInterface as HttpResponseInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -22,6 +23,8 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 class Middleware implements MiddlewareInterface
 {
+    use MiddlewareSupport;
+
     protected JWTInstance $jwt;
     protected ConfigInterface $config;
     protected HttpResponseInterface $responseFactory;
@@ -38,23 +41,13 @@ class Middleware implements MiddlewareInterface
         $config = $this->config->get('jwt', []);
 
         $except = $config['middleware']['except'] ?? [];
-        $path   = $request->getUri()->getPath();
-        foreach ($except as $pattern) {
-            try {
-                if (preg_match('#^' . $pattern . '$#', $path)) {
-                    return $handler->handle($request);
-                }
-            } catch (\Throwable $e) {
-                error_log('JWT middleware: invalid except pattern "' . $pattern . '": ' . $e->getMessage());
-            }
+        if (self::matchesExcept($except, $request->getUri()->getPath())) {
+            return $handler->handle($request);
         }
 
-        $token = $request->getHeaderLine('Authorization');
-        if (strpos($token, 'Bearer ') === 0) {
-            $token = substr($token, 7);
-        }
+        $token = JWTInstance::bearerToken($request->getHeaderLine('Authorization'));
 
-        if (empty($token)) {
+        if ($token === '') {
             return $this->responseFactory->json([
                 'code' => 401,
                 'msg'  => 'Token not provided',
@@ -66,14 +59,9 @@ class Middleware implements MiddlewareInterface
             $payload = $this->jwt->decode($token);
             $request = $request->withAttribute('jwt_payload', $payload);
         } catch (JWTException $e) {
-            $msg = in_array($e->getCode(), [
-                JWTException::TOKEN_EXPIRED,
-                JWTException::TOKEN_INVALID,
-                JWTException::TOKEN_BLACKLISTED,
-            ], true) ? $e->getMessage() : 'Token authentication failed';
             return $this->responseFactory->json([
                 'code' => 401,
-                'msg'  => $msg,
+                'msg'  => JWTException::userMessage($e),
                 'data' => null,
             ])->withStatus(401);
         }

@@ -53,6 +53,16 @@ class JWTException extends Exception
         return new self('Network error: ' . $message, self::NETWORK_ERROR);
     }
 
+    public static function isAuthFailure(self $e): bool
+    {
+        return in_array($e->getCode(), [self::TOKEN_EXPIRED, self::TOKEN_INVALID, self::TOKEN_BLACKLISTED], true);
+    }
+
+    public static function userMessage(self $e): string
+    {
+        return self::isAuthFailure($e) ? $e->getMessage() : 'Token authentication failed';
+    }
+
     /**
      * 从底层异常创建JWT异常
      */

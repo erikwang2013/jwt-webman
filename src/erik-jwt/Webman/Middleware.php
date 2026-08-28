@@ -13,22 +13,25 @@ declare(strict_types=1);
 namespace Erikwang2013\Jwt\Webman;
 
 use Erikwang2013\Jwt\JWT;
+use Erikwang2013\Jwt\JWTException;
 use Erikwang2013\Jwt\JWTFactory;
+use Erikwang2013\Jwt\MiddlewareSupport;
 use Webman\MiddlewareInterface;
 use Webman\Http\Response;
 use Webman\Http\Request;
 
 class Middleware implements MiddlewareInterface
 {
+    use MiddlewareSupport;
+
     private static ?JWT $jwtInstance = null;
 
-    private static function getJWT(): JWT
+    private static function getJWT(array $config): JWT
     {
         if (self::$jwtInstance !== null) {
             return self::$jwtInstance;
         }
 
-        $config = config('plugin.erikwang2013.jwt.jwt', []);
         self::$jwtInstance = JWTFactory::createFromConfig($config, null, [
             'redis' => fn() => \support\Redis::connection(),
             'pdo'   => \support\Db::connection()->getPdo(),
@@ -42,39 +45,23 @@ class Middleware implements MiddlewareInterface
         $config = config('plugin.erikwang2013.jwt.jwt', []);
 
         $except = $config['middleware']['except'] ?? [];
-        $path   = $request->path();
-        foreach ($except as $pattern) {
-            try {
-                if (preg_match('#^' . $pattern . '$#', $path)) {
-                    return $next($request);
-                }
-            } catch (\Throwable $e) {
-                error_log('JWT middleware: invalid except pattern "' . $pattern . '": ' . $e->getMessage());
-            }
+        if (self::matchesExcept($except, $request->path())) {
+            return $next($request);
         }
 
-        $token = $request->header('Authorization', '');
-        if (strpos($token, 'Bearer ') === 0) {
-            $token = substr($token, 7);
-        }
+        $token = JWT::bearerToken($request->header('Authorization', ''));
 
-        if (empty($token)) {
+        if ($token === '') {
             return new Response(401, ['Content-Type' => 'application/json'],
                 json_encode(['code' => 401, 'msg' => 'Token not provided', 'data' => null]));
         }
 
         try {
-            $jwt = self::getJWT();
-            $payload = $jwt->decode($token);
+            $payload = self::getJWT($config)->decode($token);
             $request->jwt_payload = $payload;
-        } catch (\Erikwang2013\Jwt\JWTException $e) {
-            $msg = in_array($e->getCode(), [
-                \Erikwang2013\Jwt\JWTException::TOKEN_EXPIRED,
-                \Erikwang2013\Jwt\JWTException::TOKEN_INVALID,
-                \Erikwang2013\Jwt\JWTException::TOKEN_BLACKLISTED,
-            ], true) ? $e->getMessage() : 'Token authentication failed';
+        } catch (JWTException $e) {
             return new Response(401, ['Content-Type' => 'application/json'],
-                json_encode(['code' => 401, 'msg' => $msg, 'data' => null]));
+                json_encode(['code' => 401, 'msg' => JWTException::userMessage($e), 'data' => null]));
         }
 
         return $next($request);

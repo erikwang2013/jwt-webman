@@ -60,7 +60,7 @@ class DatabaseTokenStorage implements TokenStorageInterface
                 return $stmt->execute([$jti, $expireTime]);
             } catch (PDOException $e) {
                 if ($e->getCode() != '23000' && ($e->errorInfo[0] ?? null) !== '23000') {
-                    throw $e;
+                    throw JWTException::storageError('Database operation failed: ' . $e->getMessage());
                 }
                 // 主键冲突时更新过期时间
                 $sql = "UPDATE {$this->tableName} SET expire_time = ? WHERE jti = ?";

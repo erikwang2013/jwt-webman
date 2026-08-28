@@ -11,6 +11,7 @@ declare(strict_types=1);
 
 namespace Erikwang2013\Jwt\ThinkPHP;
 
+use Erikwang2013\Jwt\JWT;
 use think\console\Command;
 use think\console\Input;
 use think\console\Output;
@@ -36,24 +37,10 @@ class InstallCommand extends Command
         }
 
         $secretKey = bin2hex(random_bytes(32));
-        $envPath   = app()->getRootPath() . '.env';
-
-        if (file_exists($envPath)) {
-            $envContent = file_get_contents($envPath);
-            if (strpos($envContent, 'JWT.SECRET_KEY=') !== false) {
-                $envContent = preg_replace(
-                    '/^JWT\.SECRET_KEY=.*$/m',
-                    'JWT.SECRET_KEY=' . $secretKey,
-                    $envContent
-                );
-            } else {
-                $envContent .= "\nJWT.SECRET_KEY={$secretKey}\n";
-            }
-            file_put_contents($envPath, $envContent);
-        }
+        JWT::writeEnvSecret(app()->getRootPath() . '.env', 'JWT_SECRET_KEY', $secretKey);
 
         $output->info('JWT plugin installed successfully!');
-        $output->info("JWT.SECRET_KEY: {$secretKey}");
+        $output->info("JWT_SECRET_KEY: {$secretKey}");
 
         return 0;
     }
