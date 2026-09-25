@@ -28,6 +28,7 @@ class LaravelInstallCommandTest extends TestCase
 
     public function testHandleReturnsZeroAndCallsVendorPublish(): void
     {
+        file_put_contents($this->baseDir . '/.env', "APP_KEY=base64:abc\n");
         $command = new InstallCommand();
         $this->assertSame('jwt:install', $command->getSignature());
         $this->assertSame(0, $command->handle());
@@ -66,10 +67,16 @@ class LaravelInstallCommandTest extends TestCase
         $command = new InstallCommand();
         $this->assertSame(0, $command->handle());
         $this->assertFileDoesNotExist($this->baseDir . '/.env');
+
+        // 密钥没写进去就必须说出来，不能让用户以为安装成功了
+        $output = implode("\n", $GLOBALS['__jwt_fw']['outputs']);
+        $this->assertStringContainsString('not writable', $output);
+        $this->assertMatchesRegularExpression('/JWT_SECRET_KEY=[0-9a-f]{64}/', $output);
     }
 
     public function testGeneratedSecretIsPrintedToOutput(): void
     {
+        file_put_contents($this->baseDir . '/.env', "APP_KEY=base64:abc\n");
         $command = new InstallCommand();
         $command->handle();
         $output = implode("\n", $GLOBALS['__jwt_fw']['outputs']);

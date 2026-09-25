@@ -107,6 +107,11 @@ namespace Illuminate\Console {
                 $GLOBALS['__jwt_fw']['outputs'][] = $message;
             }
 
+            public function warn(string $message): void
+            {
+                $GLOBALS['__jwt_fw']['outputs'][] = $message;
+            }
+
             public function getSignature(): string
             {
                 return $this->signature;

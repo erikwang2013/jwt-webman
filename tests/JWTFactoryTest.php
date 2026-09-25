@@ -207,6 +207,28 @@ class JWTFactoryTest extends TestCase
         $this->assertSame(8, $jwt->decode($token)['uid']);
     }
 
+    public function testAutoCleanupIntervalIsHonouredAcrossRequests(): void
+    {
+        // 闭包里的 static 在 PHP-FPM 下每个请求都会重置，节流必须落到时间戳文件上
+        $marker = sys_get_temp_dir() . '/jwt_factory_marker_' . bin2hex(random_bytes(6));
+        $method = new \ReflectionMethod(JWTFactory::class, 'cleanupDue');
+        $method->setAccessible(true);
+
+        try {
+            $this->assertTrue($method->invoke(null, $marker, 3600), '首次运行应执行清理');
+
+            file_put_contents($marker, (string) time());
+            $this->assertFalse($method->invoke(null, $marker, 3600), '间隔内不应重复清理');
+
+            file_put_contents($marker, (string) (time() - 3601));
+            $this->assertTrue($method->invoke(null, $marker, 3600), '超过间隔后应再次清理');
+
+            $this->assertTrue($method->invoke(null, $marker, 0), '间隔为 0 表示每次都清理');
+        } finally {
+            @unlink($marker);
+        }
+    }
+
     public function testCreateFromFileLoadsNativeConfig(): void
     {
         $dir = sys_get_temp_dir() . '/jwt_cfg_' . bin2hex(random_bytes(6));

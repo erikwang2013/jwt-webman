@@ -26,8 +26,6 @@ return [
         'type'     => getenv('JWT_STORAGE_TYPE') ?: 'file',
         // 键前缀，隔离多应用与多环境
         'prefix'   => getenv('JWT_STORAGE_PREFIX') ?: 'jwt_blacklist:',
-        // Redis 数据库编号
-        'database' => (int) (getenv('JWT_STORAGE_DATABASE') ?: 0),
         // file 驱动：黑名单目录，留空用系统临时目录
         'path'     => getenv('JWT_STORAGE_PATH') ?: null,
         // database 驱动：表名
@@ -45,7 +43,7 @@ return [
     'advanced' => [
         'retry_attempts'   => (int) (getenv('JWT_ADVANCED_RETRY_ATTEMPTS') ?: 3),
         'retry_delay'      => (int) (getenv('JWT_ADVANCED_RETRY_DELAY') ?: 100),
-        'auto_cleanup'     => filter_var(getenv('JWT_ADVANCED_AUTO_CLEANUP') ?: '0', FILTER_VALIDATE_BOOLEAN),
-        'cleanup_interval' => (int) (getenv('JWT_ADVANCED_CLEANUP_INTERVAL') ?: 3600),
+        'auto_cleanup'     => filter_var(getenv('JWT_AUTO_CLEANUP') ?: '0', FILTER_VALIDATE_BOOLEAN),
+        'cleanup_interval' => (int) (getenv('JWT_CLEANUP_INTERVAL') ?: 3600),
     ],
 ];

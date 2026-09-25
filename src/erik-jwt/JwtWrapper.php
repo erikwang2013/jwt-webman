@@ -31,19 +31,19 @@ class JwtWrapper
      *
      * $token 为 null 时自动从当前请求的 Authorization 头获取，原生 PHP 入口脚本里可直接调用。
      */
-    public function verify(?string $token = null): object
+    public function verify(?string $token = null, bool $allowRefresh = false): object
     {
-        return (object) $this->jwt->decode($token ?? $this->currentToken());
+        return (object) $this->jwt->decode($token ?? $this->currentToken(), $allowRefresh);
     }
 
-    public function decode(string $token): array
+    public function decode(string $token, bool $allowRefresh = false): array
     {
-        return $this->jwt->decode($token);
+        return $this->jwt->decode($token, $allowRefresh);
     }
 
-    public function validate(string $token): bool
+    public function validate(string $token, bool $allowRefresh = false): bool
     {
-        return $this->jwt->validate($token);
+        return $this->jwt->validate($token, $allowRefresh);
     }
 
     public function blacklist(string $token): bool

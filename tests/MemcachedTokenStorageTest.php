@@ -90,29 +90,15 @@ class MemcachedTokenStorageTest extends TestCase
         $this->assertTrue($storage->cleanup());
     }
 
-    public function testInvalidJtiThrowsOnBlacklist(): void
+    public function testNonHexJtiIsHashedIntoKey(): void
     {
-        [$memcached] = $this->makeMemcached();
-        $storage = new MemcachedTokenStorage($memcached);
-        try {
-            $storage->blacklist('not-hex!', time() + 3600);
-            $this->fail('Expected exception not thrown');
-        } catch (JWTException $e) {
-            $this->assertSame(JWTException::STORAGE_ERROR, $e->getCode());
-            $this->assertStringContainsString('Invalid JTI format', $e->getMessage());
-        }
-    }
+        // Memcached 键不允许空格与控制字符，非十六进制 jti 统一取 sha256
+        [$memcached, $calls, $data] = $this->makeMemcached();
+        $storage = new MemcachedTokenStorage($memcached, 'bl:');
+        $jti = '550e8400-e29b-41d4-a716-446655440000';
 
-    public function testInvalidJtiThrowsOnIsBlacklisted(): void
-    {
-        [$memcached] = $this->makeMemcached();
-        $storage = new MemcachedTokenStorage($memcached);
-        try {
-            $storage->isBlacklisted('not-hex!');
-            $this->fail('Expected exception not thrown');
-        } catch (JWTException $e) {
-            $this->assertSame(JWTException::STORAGE_ERROR, $e->getCode());
-        }
+        $storage->blacklist($jti, time() + 3600);
+        $this->assertArrayHasKey('bl:' . hash('sha256', $jti), $data);
     }
 
     public function testGetFailureCodeThrows(): void

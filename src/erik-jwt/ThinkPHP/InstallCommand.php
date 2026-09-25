@@ -40,7 +40,11 @@ class InstallCommand extends Command
         }
 
         $secretKey = bin2hex(random_bytes(32));
-        JWT::writeEnvSecret(app()->getRootPath() . '.env', 'JWT_SECRET_KEY', $secretKey);
+        if (!JWT::writeEnvSecret(app()->getRootPath() . '.env', 'JWT_SECRET_KEY', $secretKey)) {
+            $output->warning('.env not found or not writable — please add this line manually:');
+            $output->warning("JWT_SECRET_KEY={$secretKey}");
+            return 0;
+        }
 
         $output->info('JWT plugin installed successfully!');
         $output->info("JWT_SECRET_KEY: {$secretKey}");

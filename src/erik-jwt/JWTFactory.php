@@ -41,7 +41,8 @@ class JWTFactory
 
         $autoCleanup = $advancedConfig['auto_cleanup'] ?? false;
         if ($autoCleanup) {
-            self::setupAutoCleanup($jwt, $advancedConfig);
+            $seed = ($config['storage']['prefix'] ?? 'jwt_blacklist:') . ($config['storage']['path'] ?? '');
+            self::setupAutoCleanup($jwt, $advancedConfig, $seed);
         }
 
         return $jwt;
@@ -114,7 +115,8 @@ class JWTFactory
                 throw JWTException::storageError('ext-memcached is required for memcached storage');
             }
             $memcached = new Memcached();
-            $servers = $config['servers'] ?? [['127.0.0.1', 11211]];
+            // 默认合并里带了 'servers' => []，用 ?? 的话空数组会盖掉默认值 → addServers([]) 后不可用
+            $servers = $config['servers'] ?: [['127.0.0.1', 11211]];
             $memcached->addServers($servers);
             if (isset($config['options'])) {
                 $memcached->setOptions($config['options']);
@@ -141,24 +143,42 @@ class JWTFactory
 
     /**
      * 设置自动清理
+     *
+     * 闭包内的 static 变量在 PHP-FPM 下每个请求都会重置（闭包是新建的），
+     * 用它节流等于每个请求都清理一次，因此改用时间戳文件跨请求记录上次执行时间。
      */
-    private static function setupAutoCleanup(JWT $jwt, array $advancedConfig): void
+    private static function setupAutoCleanup(JWT $jwt, array $advancedConfig, string $seed): void
     {
-        $cleanupInterval = $advancedConfig['cleanup_interval'] ?? 3600;
+        $cleanupInterval = (int) ($advancedConfig['cleanup_interval'] ?? 3600);
+        $marker = sys_get_temp_dir() . '/jwt_cleanup_' . md5($seed) . '.ts';
 
-        register_shutdown_function(function () use ($jwt, $cleanupInterval) {
-            static $lastCleanup = 0;
-            $now = time();
+        register_shutdown_function(function () use ($jwt, $cleanupInterval, $marker) {
+            if (!self::cleanupDue($marker, $cleanupInterval)) {
+                return;
+            }
 
-            if ($now - $lastCleanup >= $cleanupInterval) {
-                try {
-                    $jwt->cleanup();
-                    $lastCleanup = $now;
-                } catch (\Exception $e) {
-                    error_log("JWT auto cleanup failed: " . $e->getMessage());
-                }
+            @file_put_contents($marker, (string) time(), LOCK_EX);
+
+            try {
+                $jwt->cleanup();
+            } catch (\Exception $e) {
+                error_log("JWT auto cleanup failed: " . $e->getMessage());
             }
         });
+    }
+
+    /**
+     * 距离上次清理是否已超过间隔（0 或负数表示每次都清理）。
+     */
+    private static function cleanupDue(string $marker, int $interval): bool
+    {
+        if ($interval <= 0) {
+            return true;
+        }
+
+        $last = is_file($marker) ? (int) @file_get_contents($marker) : 0;
+
+        return (time() - $last) >= $interval;
     }
 
 }

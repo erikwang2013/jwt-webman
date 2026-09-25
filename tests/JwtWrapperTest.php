@@ -102,7 +102,7 @@ class JwtWrapperTest extends TestCase
         $token = $this->jwt->create(['uid' => 1, 'token_type' => 'refresh']);
         $newToken = $this->jwt->refresh($token);
         $this->assertNotSame($token, $newToken);
-        $payload = $this->jwt->decode($newToken);
+        $payload = $this->jwt->decode($newToken, true);
         $this->assertSame(1, $payload['uid']);
     }
 

@@ -24,10 +24,19 @@ class JWTServiceProvider extends ServiceProvider
 
         $this->app->singleton('erik.jwt', function ($app) {
             $config = $app['config']->get('jwt', []);
-            return JWTFactory::createFromConfig($config, $app['log']->channel(), [
-                'redis' => fn() => Redis::connection()->client(),
-                'pdo'   => DB::connection()->getPdo(),
-            ]);
+
+            // 只在用到对应驱动时取连接：数据库不可用不应该影响 file / redis 存储的应用
+            $type = $config['storage']['type'] ?? 'file';
+            $connections = [];
+            if ($type === 'redis') {
+                $connections['redis'] = fn() => Redis::connection()->client();
+            }
+            if ($type === 'database') {
+                $connections['pdo'] = DB::connection()->getPdo();
+            }
+            // memcached 由工厂按 storage.servers 自行构造，容器里没有对应绑定时不要塞一个空实例
+
+            return JWTFactory::createFromConfig($config, $app['log']->channel(), $connections);
         });
     }
 

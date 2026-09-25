@@ -28,10 +28,6 @@ class MemcachedTokenStorage implements TokenStorageInterface
 
     public function blacklist(string $jti, int $expireTime): bool
     {
-        if (!ctype_xdigit($jti)) {
-            throw JWTException::storageError('Invalid JTI format');
-        }
-
         try {
             $now = time();
             $ttl = $expireTime - $now;
@@ -45,7 +41,7 @@ class MemcachedTokenStorage implements TokenStorageInterface
                 $ttl += $now;
             }
 
-            $key = $this->prefix . $jti;
+            $key = $this->key($jti);
             $result = $this->memcached->set($key, '1', $ttl);
             if ($result === false || $this->memcached->getResultCode() !== \Memcached::RES_SUCCESS) {
                 throw JWTException::storageError('Memcached error: ' . $this->memcached->getResultMessage());
@@ -60,12 +56,8 @@ class MemcachedTokenStorage implements TokenStorageInterface
 
     public function isBlacklisted(string $jti): bool
     {
-        if (!ctype_xdigit($jti)) {
-            throw JWTException::storageError('Invalid JTI format');
-        }
-
         try {
-            $key = $this->prefix . $jti;
+            $key = $this->key($jti);
             $result = $this->memcached->get($key);
             if ($this->memcached->getResultCode() === \Memcached::RES_NOTFOUND) {
                 return false;
@@ -85,5 +77,14 @@ class MemcachedTokenStorage implements TokenStorageInterface
     {
         // Memcached会自动过期，不需要手动清理
         return true;
+    }
+
+    /**
+     * 缓存键：十六进制 jti（本库签发的都是）原样使用，其他格式（如迁移过来的 UUID）
+     * 取 sha256 —— Memcached 的键不允许空格与控制字符。
+     */
+    private function key(string $jti): string
+    {
+        return $this->prefix . (ctype_xdigit($jti) ? $jti : hash('sha256', $jti));
     }
 }

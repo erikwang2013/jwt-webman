@@ -42,7 +42,7 @@ class DatabaseTokenStorage implements TokenStorageInterface
     {
         $sql = "CREATE TABLE IF NOT EXISTS {$this->tableName} (
             jti VARCHAR(64) PRIMARY KEY,
-            expire_time INT NOT NULL,
+            expire_time BIGINT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )";
 

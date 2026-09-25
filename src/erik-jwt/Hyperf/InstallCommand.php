@@ -47,7 +47,11 @@ class InstallCommand extends Command
         }
 
         $secretKey = bin2hex(random_bytes(32));
-        JWT::writeEnvSecret(BASE_PATH . '/.env', 'JWT_SECRET_KEY', $secretKey);
+        if (!JWT::writeEnvSecret(BASE_PATH . '/.env', 'JWT_SECRET_KEY', $secretKey)) {
+            $this->warn('.env not found or not writable — please add this line manually:');
+            $this->warn("JWT_SECRET_KEY={$secretKey}");
+            return;
+        }
 
         $this->info('JWT plugin installed successfully!');
         $this->info("JWT_SECRET_KEY: {$secretKey}");

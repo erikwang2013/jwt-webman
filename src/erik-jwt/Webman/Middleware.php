@@ -32,10 +32,18 @@ class Middleware implements MiddlewareInterface
             return self::$jwtInstance;
         }
 
-        self::$jwtInstance = JWTFactory::createFromConfig($config, null, [
-            'redis' => fn() => \support\Redis::connection(),
-            'pdo'   => \support\Db::connection()->getPdo(),
-        ]);
+        // 只在用到对应驱动时取连接：装了 webman/database 才能取到 PDO，
+        // file / redis 存储的应用不应该因为它没装或数据库故障而整个挂掉
+        $type = $config['storage']['type'] ?? 'file';
+        $connections = [];
+        if ($type === 'redis') {
+            $connections['redis'] = fn() => \support\Redis::connection();
+        }
+        if ($type === 'database') {
+            $connections['pdo'] = \support\Db::connection()->getPdo();
+        }
+
+        self::$jwtInstance = JWTFactory::createFromConfig($config, null, $connections);
 
         return self::$jwtInstance;
     }

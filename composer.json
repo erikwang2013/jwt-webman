@@ -52,8 +52,7 @@
             "Erikwang2013\\Jwt\\": "src/erik-jwt"
         },
         "files": [
-            "src/erik-jwt/Laravel/helpers.php",
-            "src/erik-jwt/ThinkPHP/helpers.php"
+            "src/erik-jwt/Laravel/helpers.php"
         ]
     },
     "repositories": {

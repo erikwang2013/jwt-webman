@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 class RedisTokenStorageTest extends TestCase
 {
-    private function makeRedis($pong, bool $existsResult = false, $existsRaw = null)
+    private function makeRedis($pong, $existsResult = 0, $existsRaw = null)
     {
         return new class($pong, $existsResult, $existsRaw) {
             public $pong;
@@ -79,40 +79,41 @@ class RedisTokenStorageTest extends TestCase
 
     public function testIsBlacklistedFalse(): void
     {
-        $redis = $this->makeRedis('PONG', false);
+        $redis = $this->makeRedis('PONG', 0);
         $storage = new RedisTokenStorage(fn () => $redis);
         $this->assertFalse($storage->isBlacklisted('a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6'));
     }
 
     public function testIsBlacklistedAcceptsIntReturn(): void
     {
-        $redis = $this->makeRedis('+PONG', false, 1);
+        $redis = $this->makeRedis('+PONG', 0, 1);
         $storage = new RedisTokenStorage(fn () => $redis);
         $this->assertTrue($storage->isBlacklisted('a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6'));
     }
 
-    public function testInvalidJtiThrowsOnBlacklist(): void
+    public function testExistsFalseThrowsInsteadOfFailingOpen(): void
     {
-        $storage = new RedisTokenStorage(fn () => $this->makeRedis('PONG'));
+        // phpredis 超时/链路错误时 exists() 返回 false，与"0 个键"无法区分，
+        // 当成"未拉黑"会放行已拉黑的令牌，必须抛错交给 fail_open 决策
+        $storage = new RedisTokenStorage(fn () => $this->makeRedis('PONG', false));
+
         try {
-            $storage->blacklist('not-hex!', time() + 3600);
+            $storage->isBlacklisted('a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6');
             $this->fail('Expected exception not thrown');
         } catch (JWTException $e) {
             $this->assertSame(JWTException::STORAGE_ERROR, $e->getCode());
-            $this->assertStringContainsString('Invalid JTI format', $e->getMessage());
+            $this->assertStringContainsString('no reply', $e->getMessage());
         }
     }
 
-    public function testInvalidJtiThrowsOnIsBlacklisted(): void
+    public function testNonHexJtiIsHashedIntoKey(): void
     {
-        $storage = new RedisTokenStorage(fn () => $this->makeRedis('PONG'));
-        try {
-            $storage->isBlacklisted('not-hex!');
-            $this->fail('Expected exception not thrown');
-        } catch (JWTException $e) {
-            $this->assertSame(JWTException::STORAGE_ERROR, $e->getCode());
-            $this->assertStringContainsString('Invalid JTI format', $e->getMessage());
-        }
+        $redis = $this->makeRedis('PONG');
+        $storage = new RedisTokenStorage(fn () => $redis, 'bl:');
+        $jti = '550e8400-e29b-41d4-a716-446655440000';
+
+        $storage->blacklist($jti, time() + 3600);
+        $this->assertSame('bl:' . hash('sha256', $jti), $redis->lastSetexKey);
     }
 
     public function testFailedPingThrowsOnIsBlacklisted(): void

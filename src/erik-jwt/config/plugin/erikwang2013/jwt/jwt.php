@@ -18,7 +18,6 @@ return [
     'refresh_expire' => (int) (getenv('JWT_REFRESH_EXPIRE') ?: 7200),
     'storage'        => [
         'type'     => getenv('JWT_STORAGE_TYPE') ?: 'file',
-        'database' => (int) (getenv('JWT_STORAGE_DATABASE') ?: 0),
         'prefix'   => getenv('JWT_STORAGE_PREFIX') ?: 'jwt_blacklist:',
         // file 驱动：黑名单目录，留空用系统临时目录
         'path'     => getenv('JWT_STORAGE_PATH') ?: null,
@@ -36,8 +35,8 @@ return [
     'advanced'       => [
         'retry_attempts'   => (int) (getenv('JWT_ADVANCED_RETRY_ATTEMPTS') ?: 3),
         'retry_delay'      => (int) (getenv('JWT_ADVANCED_RETRY_DELAY') ?: 100),
-        'auto_cleanup'     => filter_var(getenv('JWT_ADVANCED_AUTO_CLEANUP') ?: '0', FILTER_VALIDATE_BOOLEAN),
-        'cleanup_interval' => (int) (getenv('JWT_ADVANCED_CLEANUP_INTERVAL') ?: 3600),
+        'auto_cleanup'     => filter_var(getenv('JWT_AUTO_CLEANUP') ?: '0', FILTER_VALIDATE_BOOLEAN),
+        'cleanup_interval' => (int) (getenv('JWT_CLEANUP_INTERVAL') ?: 3600),
     ],
     'middleware'     => [
         'except' => [],

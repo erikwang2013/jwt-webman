@@ -27,7 +27,11 @@ class InstallCommand extends Command
         $this->call('vendor:publish', ['--tag' => 'jwt-config']);
 
         $secretKey = bin2hex(random_bytes(32));
-        JWT::writeEnvSecret(base_path('.env'), 'JWT_SECRET_KEY', $secretKey);
+        if (!JWT::writeEnvSecret(base_path('.env'), 'JWT_SECRET_KEY', $secretKey)) {
+            $this->warn('.env not found or not writable — please add this line manually:');
+            $this->warn("JWT_SECRET_KEY={$secretKey}");
+            return 0;
+        }
 
         $this->info('JWT plugin installed successfully!');
         $this->info("JWT_SECRET_KEY: {$secretKey}");

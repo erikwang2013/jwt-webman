@@ -50,6 +50,12 @@ class JWT
         if (strlen($this->secretKey) < 32) {
             throw JWTException::configError('Secret key must be at least 32 characters (256 bits)');
         }
+
+        // 算法拼错时 firebase 会在 encode 抛 DomainException、在 decode 把合法令牌全判为无效，
+        // 表现成"到处 401"，不如启动即报配置错误
+        if (!isset(FirebaseJWT::$supported_algs[$this->algorithm])) {
+            throw JWTException::configError('Unsupported algorithm: ' . $this->algorithm);
+        }
     }
 
     /**
@@ -81,20 +87,23 @@ class JWT
 
     /**
      * 解码并验证JWT令牌
+     *
+     * 默认拒绝刷新令牌：刷新令牌有效期更长，且刷新时会轮换，把它当访问令牌用
+     * 等于让"登出/轮换"失效。确实需要读取刷新令牌时显式传 $allowRefresh = true。
      */
-    public function decode(string $token): array
+    public function decode(string $token, bool $allowRefresh = false): array
     {
         // FirebaseJWT::$leeway is a global static — restore it or concurrent JWT instances clash
         $previousLeeway = FirebaseJWT::$leeway;
         try {
             FirebaseJWT::$leeway = $this->leeway;
-            return $this->decodeWithLeeway($token);
+            return $this->decodeWithLeeway($token, $allowRefresh);
         } finally {
             FirebaseJWT::$leeway = $previousLeeway;
         }
     }
 
-    private function decodeWithLeeway(string $token): array
+    private function decodeWithLeeway(string $token, bool $allowRefresh = false): array
     {
         try {
             $decoded = FirebaseJWT::decode($token, new Key($this->secretKey, $this->algorithm));
@@ -105,6 +114,10 @@ class JWT
             if ($this->audience !== '' && !$this->audMatches($payload['aud'] ?? null)) {
                 throw JWTException::invalid('Invalid audience');
             }
+            if (!$allowRefresh && ($payload['token_type'] ?? null) === 'refresh') {
+                throw JWTException::invalid('Refresh token cannot be used as an access token');
+            }
+
             if (isset($payload['jti']) && $this->isBlacklistedJti($payload['jti'])) {
                 throw JWTException::blacklisted();
             }
@@ -149,10 +162,10 @@ class JWT
     /**
      * 验证令牌而不抛出异常（decode 内部已检查黑名单）
      */
-    public function validate(string $token): bool
+    public function validate(string $token, bool $allowRefresh = false): bool
     {
         try {
-            $this->decode($token);
+            $this->decode($token, $allowRefresh);
             return true;
         } catch (Exception $e) {
             $this->logger->warning($e->getMessage());
@@ -167,14 +180,16 @@ class JWT
      */
     public function refresh(string $token, int $newExpire = 0): string
     {
-        $payload = $this->decode($token);
+        $payload = $this->decode($token, true);
 
         if (($payload['token_type'] ?? '') !== 'refresh') {
             throw JWTException::invalid('Only refresh tokens can be refreshed');
         }
 
-        if (isset($payload['jti'])) {
-            $this->tokenStorage->blacklist($payload['jti'], $payload['exp']);
+        // firebase v7 允许不带 exp 的令牌，缺失时不能直接当 int 用
+        $oldExp = (int) ($payload['exp'] ?? 0);
+        if (isset($payload['jti']) && $oldExp > time()) {
+            $this->tokenStorage->blacklist($payload['jti'], $oldExp);
         }
 
         unset($payload['iat'], $payload['nbf'], $payload['exp'], $payload['jti']);
@@ -196,12 +211,13 @@ class JWT
     public function blacklist(string $token): bool
     {
         try {
-            $payload = $this->decode($token);
+            $payload = $this->decode($token, true);
             if (!isset($payload['jti'])) {
                 return false;
             }
 
-            return $this->tokenStorage->blacklist($payload['jti'], $payload['exp']);
+            // 无 exp 的令牌没有可回收期限，expire_time 传 0 时各存储都按"已过期"跳过
+            return $this->tokenStorage->blacklist($payload['jti'], (int) ($payload['exp'] ?? 0));
         } catch (JWTException $e) {
             // 如果是黑名单或过期异常，仍然尝试加入黑名单
             if (
@@ -238,10 +254,8 @@ class JWT
         try {
             $payload = $this->getPayloadWithoutValidation($token);
             return isset($payload['jti']) && $this->tokenStorage->isBlacklisted($payload['jti']);
-        } catch (JWTException $e) {
-            $this->logger->error($e->getMessage());
-            return false;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // 含 TypeError/Error：这里是未验证令牌的入口，任何输入都不能变成 500
             $this->logger->error($e->getMessage());
             return false;
         }
@@ -264,7 +278,16 @@ class JWT
         }
         $decoded = base64_decode(str_replace(['-', '_'], ['+', '/'], $payload));
         $result = json_decode($decoded, true);
-        return is_array($result) ? $result : [];
+        if (!is_array($result)) {
+            return [];
+        }
+
+        // 未验证令牌的 jti 不可信：伪造 {"jti":[...]} 会让 storage 的 string 参数抛 TypeError
+        if (isset($result['jti']) && !is_string($result['jti'])) {
+            unset($result['jti']);
+        }
+
+        return $result;
     }
 
     /**
@@ -304,26 +327,38 @@ class JWT
     public static function bearerToken($header): string
     {
         if (is_string($header) && strncasecmp($header, 'Bearer ', 7) === 0) {
-            return substr($header, 7);
+            // 容忍 "Bearer  <token>" 这类多余空白
+            return trim(substr($header, 7));
         }
         return '';
     }
 
-    public static function writeEnvSecret(string $envPath, string $key, string $secret): void
+    /**
+     * 把密钥写入 .env，写入成功返回 true。
+     *
+     * 返回 false 表示 .env 不存在或不可写 —— 调用方（安装命令）必须据此提示用户，
+     * 否则会出现"安装成功"但密钥并未落盘的假象。
+     */
+    public static function writeEnvSecret(string $envPath, string $key, string $secret): bool
     {
         if (!file_exists($envPath)) {
-            return;
+            return false;
         }
         $envContent = file_get_contents($envPath);
-        $pattern    = '/^' . preg_quote($key, '/') . '=.*$/m';
+        if ($envContent === false) {
+            return false;
+        }
+
+        $pattern = '/^' . preg_quote($key, '/') . '=.*$/m';
         if (preg_match($pattern, $envContent)) {
-            // Escape $ in the replacement so secrets containing $0/$1 are not mangled
-            $replacement = str_replace('$', '\\$', $key . '=' . $secret);
+            // 反斜杠与 $ 都要转义，否则替换串里的 \1 / $1 会被 preg_replace 当反向引用吞掉
+            $replacement = str_replace(['\\', '$'], ['\\\\', '\\$'], $key . '=' . $secret);
             $envContent  = preg_replace($pattern, $replacement, $envContent) ?? $envContent;
         } else {
             $envContent .= "\n{$key}={$secret}\n";
         }
-        file_put_contents($envPath, $envContent, LOCK_EX);
+
+        return file_put_contents($envPath, $envContent, LOCK_EX) !== false;
     }
 
     /**

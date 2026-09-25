@@ -89,7 +89,6 @@ class FileTokenStorage implements TokenStorageInterface
     {
         $files = glob($this->storagePath . '/*.json') ?: [];
         $now = time();
-        $cleaned = 0;
 
         foreach ($files as $file) {
             if (!is_readable($file)) {
@@ -103,9 +102,14 @@ class FileTokenStorage implements TokenStorageInterface
 
             $data = json_decode($content, true);
             if ($data && $now > ($data['expire_time'] ?? 0)) {
-                if (unlink($file)) {
-                    $cleaned++;
-                }
+                @unlink($file);
+            }
+        }
+
+        // 写入过程中崩溃会留下 *.json.tmp.*，不在上面的 glob 里，单独回收
+        foreach (glob($this->storagePath . '/*.json.tmp.*') ?: [] as $tmp) {
+            if (@filemtime($tmp) < $now - 3600) {
+                @unlink($tmp);
             }
         }
 
@@ -115,15 +119,15 @@ class FileTokenStorage implements TokenStorageInterface
 
     private function getFilePath(string $jti): string
     {
-        if (!ctype_xdigit($jti)) {
-            throw JWTException::storageError('Invalid JTI format');
-        }
-        return $this->storagePath . '/' . $jti . '.json';
+        // 非十六进制 jti（如从其他系统迁移过来的 UUID）转为十六进制文件名：
+        // 既杜绝路径穿越，也不改变本库签发的十六进制 jti 的文件名
+        return $this->storagePath . '/' . (ctype_xdigit($jti) ? $jti : bin2hex($jti)) . '.json';
     }
 
     private function garbageCollection(): void
     {
-        if (mt_rand(1, 100) <= ($this->gcProbability * 100)) {
+        // mt_rand(1, 100) <= ($p * 100) 会让任何 p < 0.01 永远不触发
+        if ($this->gcProbability > 0 && (mt_rand() / mt_getrandmax()) < $this->gcProbability) {
             $this->cleanup();
         }
     }

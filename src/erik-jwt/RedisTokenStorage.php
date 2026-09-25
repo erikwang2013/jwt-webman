@@ -46,10 +46,6 @@ class RedisTokenStorage implements TokenStorageInterface
 
     public function blacklist(string $jti, int $expireTime): bool
     {
-        if (!ctype_xdigit($jti)) {
-            throw JWTException::storageError('Invalid JTI format');
-        }
-
         $now = time();
         $ttl = $expireTime - $now;
         if ($ttl <= 0) {
@@ -57,7 +53,7 @@ class RedisTokenStorage implements TokenStorageInterface
         }
 
         try {
-            $result = $this->redis()->setex($this->prefix . $jti, $ttl, '1');
+            $result = $this->redis()->setex($this->key($jti), $ttl, '1');
             if ($result === false) {
                 throw JWTException::storageError('Failed to blacklist token in Redis');
             }
@@ -73,12 +69,15 @@ class RedisTokenStorage implements TokenStorageInterface
 
     public function isBlacklisted(string $jti): bool
     {
-        if (!ctype_xdigit($jti)) {
-            throw JWTException::storageError('Invalid JTI format');
-        }
-
         try {
-            return (bool) $this->redis()->exists($this->prefix . $jti);
+            $result = $this->redis()->exists($this->key($jti));
+            // phpredis 在超时/链路错误时返回 false 而不是抛异常，(bool) 后与"0 个键"无法区分，
+            // 会把已拉黑的令牌放行，且绕过 storage.fail_open 的 fail-closed 策略
+            if ($result === false) {
+                throw JWTException::storageError('Redis blacklist check failed: no reply from server');
+            }
+
+            return $result > 0;
         } catch (\Throwable $e) {
             $this->redis = null;
             if ($e instanceof JWTException) {
@@ -92,6 +91,15 @@ class RedisTokenStorage implements TokenStorageInterface
     {
         // Redis会自动过期，不需要手动清理
         return true;
+    }
+
+    /**
+     * 黑名单键：十六进制 jti（本库签发的都是）原样使用，其他格式（如迁移过来的 UUID）
+     * 取 sha256，保证键安全且不改变已有键的命名。
+     */
+    private function key(string $jti): string
+    {
+        return $this->prefix . (ctype_xdigit($jti) ? $jti : hash('sha256', $jti));
     }
 
     public function isConnected(): bool

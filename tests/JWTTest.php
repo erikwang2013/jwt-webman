@@ -159,9 +159,48 @@ class JWTTest extends TestCase
         $config['refresh_expire'] = 14400;
         $jwt = new JWT($config);
         $token = $jwt->encode(['uid' => 1, 'token_type' => 'refresh']);
-        $payload = $jwt->decode($token);
+        $payload = $jwt->decode($token, true);
         $this->assertSame(1, $payload['uid']);
         $this->assertSame('refresh', $payload['token_type']);
+    }
+
+    public function testRefreshTokenIsRejectedByDefault(): void
+    {
+        $jwt = new JWT($this->validConfig);
+        $token = $jwt->encode(['uid' => 1, 'token_type' => 'refresh']);
+
+        // 刷新令牌有效期更长，不能当访问令牌使用
+        $this->expectException(JWTException::class);
+        $this->expectExceptionCode(JWTException::TOKEN_INVALID);
+        $jwt->decode($token);
+    }
+
+    public function testUnsupportedAlgorithmFailsFastAtConstruction(): void
+    {
+        $config = $this->validConfig;
+        $config['algorithm'] = 'hs256'; // 大小写拼错
+
+        $this->expectException(JWTException::class);
+        $this->expectExceptionCode(JWTException::CONFIG_ERROR);
+        new JWT($config);
+    }
+
+    public function testForgedNonStringJtiDoesNotCauseFatalError(): void
+    {
+        $jwt = new JWT($this->validConfig);
+
+        // 未验证令牌的 payload 完全可控；jti 是数组时不能让它变成 TypeError/500
+        $b64 = fn ($data) => rtrim(strtr(base64_encode(json_encode($data)), '+/', '-_'), '=');
+        $forged = $b64(['alg' => 'HS256']) . '.' . $b64(['jti' => ['a'], 'exp' => time() + 60]) . '.sig';
+
+        $this->assertFalse($jwt->isBlacklisted($forged));
+        $this->assertSame([], array_intersect_key($jwt->getPayloadWithoutValidation($forged), ['jti' => null]));
+    }
+
+    public function testBearerTokenTrimsExtraWhitespace(): void
+    {
+        $this->assertSame('abc.def.ghi', JWT::bearerToken('Bearer  abc.def.ghi '));
+        $this->assertSame('', JWT::bearerToken('Basic xyz'));
     }
 
     public function testValidateValidToken(): void
@@ -220,7 +259,7 @@ class JWTTest extends TestCase
         $newToken = $jwt->refresh($token, 3600);
 
         $this->assertNotSame($token, $newToken);
-        $payload = $jwt->decode($newToken);
+        $payload = $jwt->decode($newToken, true);
         $this->assertSame(1, $payload['uid']);
     }
 

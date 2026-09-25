@@ -62,11 +62,21 @@ class FileTokenStorageTest extends TestCase
         $this->assertTrue($s->cleanup());
         $this->assertFalse($s->isBlacklisted($jti));
     }
-    public function testInvalidJtiThrows(): void
+    public function testNonHexJtiIsStoredWithoutEscapingStorageDir(): void
     {
         $s = new FileTokenStorage($this->tempDir);
-        $this->expectException(\Erikwang2013\Jwt\JWTException::class);
-        $s->blacklist('not-hex!@#', time() + 3600);
+
+        // 非十六进制 jti（如迁移过来的 UUID）不再抛异常，而是转成十六进制文件名
+        $this->assertTrue($s->blacklist('550e8400-e29b-41d4-a716-446655440000', time() + 3600));
+        $this->assertTrue($s->isBlacklisted('550e8400-e29b-41d4-a716-446655440000'));
+
+        // 路径穿越同样被转义，文件不会落到目录外
+        $s->blacklist('../../etc/passwd', time() + 3600);
+        $files = glob($this->tempDir . '/*.json') ?: [];
+        $this->assertCount(2, $files);
+        foreach ($files as $file) {
+            $this->assertSame($this->tempDir, dirname($file));
+        }
     }
     public function testGetStats(): void
     {

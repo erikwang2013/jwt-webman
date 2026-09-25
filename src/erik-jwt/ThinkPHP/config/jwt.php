@@ -17,7 +17,6 @@ return [
     'storage' => [
         'type'     => env('JWT.STORAGE_TYPE', 'file'),
         'prefix'   => env('JWT.STORAGE_PREFIX', 'jwt_blacklist:'),
-        'database' => (int) env('JWT.STORAGE_DATABASE', 0),
         // file 驱动：黑名单目录，留空用系统临时目录
         'path'     => env('JWT.STORAGE_PATH'),
         // database 驱动：表名

@@ -433,17 +433,23 @@ class UserController {
 }
 ```
 
-**中间件：** ConfigProvider 已自动注册，在 `config/autoload/middlewares.php` 中配置即可。
+**中间件：** ConfigProvider 已自动注册，在 `config/autoload/middlewares.php` 中配置即可。走中间件的路由用请求属性读 payload：
+
+```php
+$payload = $request->getAttribute('jwt_payload');
+```
 
 **AOP 注解方式（可选）：**
 
 ```php
 use Erikwang2013\Jwt\Hyperf\JWT as JWTAuth;
+use Hyperf\Context\Context;
 
 class UserController {
     #[JWTAuth]
     public function index() {
-        // 方法执行前自动校验 JWT
+        // 方法执行前自动校验 JWT；AOP 走协程上下文传递 payload
+        $payload = Context::get('jwt_payload');
     }
 }
 ```
@@ -474,8 +480,7 @@ return [
         'type'     => env('JWT_STORAGE_TYPE', 'file'),
         // 缓存键前缀
         'prefix'   => env('JWT_STORAGE_PREFIX', 'jwt_blacklist:'),
-        // Redis 数据库编号
-        'database' => (int) env('JWT_STORAGE_DATABASE', 0),
+        // 注：Redis 使用哪个库由应用自己的连接决定，本插件不切换连接的 DB
         // file 驱动：黑名单目录，留空用系统临时目录
         'path'     => env('JWT_STORAGE_PATH'),
         // database 驱动：表名
@@ -486,6 +491,9 @@ return [
         'gc_probability'    => (float) env('JWT_STORAGE_GC_PROBABILITY', 0.1),
         // 存储故障时：false（默认）拒绝所有令牌；true 放行并记 error 日志
         'fail_open'         => filter_var(env('JWT_STORAGE_FAIL_OPEN', false), FILTER_VALIDATE_BOOLEAN),
+        // memcached 驱动：服务器列表与选项，仅在未注入 Memcached 实例时生效
+        'servers'           => [['127.0.0.1', 11211]],
+        'options'           => [],
     ],
     // 高级配置
     'advanced' => [
@@ -524,6 +532,23 @@ return [
 
 ## 注意事项
 
+### 刷新令牌不能当访问令牌用
+
+`decode()` / `validate()`（以及四个框架的中间件、`Native\Guard`）**默认拒绝 `token_type` 为 `refresh` 的令牌**。刷新令牌有效期更长，且刷新时才会轮换，若允许它直接访问受保护接口，一次泄露就等于长期通行证、登出也不会立即失效。
+
+确实需要读取刷新令牌（例如自定义刷新逻辑）时显式放开：
+
+```php
+$payload = $jwt->decode($refreshToken, true);
+$payload = $jwt->decode($accessToken, false);   // 默认行为
+```
+
+`refresh()` 与 `blacklist()` 内部已按需放开，不受影响。
+
+### jti 格式
+
+本插件签发令牌时用 `bin2hex(random_bytes(16))` 生成 `jti`（32 位十六进制）。若接入的是其他系统签发、`jti` 为 UUID 等其他格式的令牌，file / redis / memcached 驱动会把非十六进制 jti 转成十六进制或 sha256 再作为键名（既避免路径穿越与非法缓存键，也不改变已有十六进制 jti 的键名），database 驱动直接存原值。
+
 ### 存储故障与 fail_open
 
 `decode()` 查询黑名单时若存储抛错，默认向上抛出 `JWTException`（`STORAGE_ERROR`），中间件据此返回 401 —— 这是刻意选择的 fail-closed：撤销信息不可信时不放行。更看重可用性的业务可以显式打开 `storage.fail_open`，此时故障期间签名有效的令牌会被放行，并记录 error 日志。`database` 驱动在 PDO 静默错误模式（`ERRMODE_SILENT`，PDO 默认值）下同样会抛出，不会静默放行。
@@ -538,7 +563,7 @@ return [
 
 ### 常驻进程中的自动清理
 
-`auto_cleanup` 使用 `register_shutdown_function` 实现，在传统 PHP-FPM 模式下工作正常。但在 **webman**（Workerman）和 **Hyperf**（Swoole/Swow）等常驻内存进程中，shutdown 函数仅在 worker 进程退出时触发，不会在每个请求后执行。
+`auto_cleanup` 使用 `register_shutdown_function` 实现，`cleanup_interval` 通过时间戳文件跨请求节流（闭包内的静态变量在 PHP-FPM 下每个请求都会重置，不能用来节流）。在传统 PHP-FPM 模式下工作正常，但 **webman**（Workerman）和 **Hyperf**（Swoole/Swow）等常驻内存进程中，shutdown 函数仅在 worker 进程退出时触发，不会在每个请求后执行。
 
 在常驻进程模式下，建议通过框架自身的定时器机制定期调用清理：
 
