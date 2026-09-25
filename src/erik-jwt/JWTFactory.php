@@ -48,6 +48,19 @@ class JWTFactory
     }
 
     /**
+     * 从 PHP 配置文件创建 JWT 实例（原生 PHP 项目入口）。
+     *
+     * 配置文件直接 return 一个数组即可，模板见 src/erik-jwt/Native/config/jwt.php。
+     */
+    public static function createFromFile(
+        string $configFile,
+        ?LoggerInterface $logger = null,
+        array $connections = []
+    ): JWT {
+        return self::createFromConfig(Config::fromFile($configFile)->toArray(), $logger, $connections);
+    }
+
+    /**
      * 合并 storage 顶层项到 config，使默认配置中 storage.database / storage.prefix 等生效。
      */
     private static function createTokenStorage(array $config, array $connections): TokenStorageInterface
@@ -88,8 +101,9 @@ class JWTFactory
         if (!$pdo instanceof PDO) {
             throw JWTException::storageError('PDO instance required when storage type is database');
         }
-        $tableName = $config['table_name'] ?? 'jwt_blacklist';
-        return new DatabaseTokenStorage($pdo, $tableName);
+        $tableName  = $config['table_name'] ?? 'jwt_blacklist';
+        $autoCreate = (bool) ($config['auto_create_table'] ?? true);
+        return new DatabaseTokenStorage($pdo, $tableName, $autoCreate);
     }
 
     private static function createMemcachedStorage(array $config, array $connections): MemcachedTokenStorage

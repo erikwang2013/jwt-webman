@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560" role="img" aria-labelledby="featTitle featDesc"
+     font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif">
+  <title id="featTitle">erikwang2013/jwt-webman 功能设计</title>
+  <desc id="featDesc">六大功能域：令牌签发、令牌校验、令牌刷新、黑名单存储、高可用与框架集成。</desc>
+
+  <rect x="0" y="0" width="960" height="560" rx="18" fill="#F8FAFC" stroke="#E2E8F0"/>
+  <text x="40" y="52" font-size="22" font-weight="700" fill="#0F172A">功能设计 · Features</text>
+  <text x="40" y="78" font-size="13" fill="#64748B">六大功能域覆盖令牌全流程，原生 PHP 与四种框架共用同一套 API 与配置结构</text>
+
+  <!-- ① 令牌签发 -->
+  <rect x="40" y="108" width="282" height="190" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <line x1="56" y1="130" x2="118" y2="130" stroke="#F59E0B" stroke-width="3.5" stroke-linecap="round"/>
+  <text x="56" y="160" font-size="15" font-weight="700" fill="#0F172A">令牌签发</text>
+  <text x="56" y="180" font-size="11" fill="#B45309">encode()</text>
+  <text x="56" y="212" font-size="11.5" fill="#475569">HS256 / HS384 / HS512 / RS256</text>
+  <text x="56" y="234" font-size="11.5" fill="#475569">自动写入 iss · aud · iat · nbf · exp</text>
+  <text x="56" y="256" font-size="11.5" fill="#475569">每个令牌生成唯一 jti（随机 16 字节）</text>
+  <text x="56" y="278" font-size="11.5" fill="#475569">可指定过期时间与自定义头部</text>
+
+  <!-- ② 令牌校验 -->
+  <rect x="339" y="108" width="282" height="190" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <line x1="355" y1="130" x2="417" y2="130" stroke="#2563EB" stroke-width="3.5" stroke-linecap="round"/>
+  <text x="355" y="160" font-size="15" font-weight="700" fill="#0F172A">令牌校验</text>
+  <text x="355" y="180" font-size="11" fill="#1D4ED8">decode() · validate()</text>
+  <text x="355" y="212" font-size="11.5" fill="#475569">签名校验 + 过期校验（含 nbf 生效时间）</text>
+  <text x="355" y="234" font-size="11.5" fill="#475569">iss / aud 逐项比对，aud 支持数组</text>
+  <text x="355" y="256" font-size="11.5" fill="#475569">leeway 时钟容差，分布式部署不误杀</text>
+  <text x="355" y="278" font-size="11.5" fill="#475569">校验通过前先查 jti 黑名单</text>
+
+  <!-- ③ 令牌刷新 -->
+  <rect x="638" y="108" width="282" height="190" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <line x1="654" y1="130" x2="716" y2="130" stroke="#7C3AED" stroke-width="3.5" stroke-linecap="round"/>
+  <text x="654" y="160" font-size="15" font-weight="700" fill="#0F172A">令牌刷新</text>
+  <text x="654" y="180" font-size="11" fill="#6D28D9">refresh()</text>
+  <text x="654" y="212" font-size="11.5" fill="#475569">仅 refresh 类型令牌可换取新令牌</text>
+  <text x="654" y="234" font-size="11.5" fill="#475569">旧令牌 jti 立即入黑名单，实现轮换</text>
+  <text x="654" y="256" font-size="11.5" fill="#475569">可指定过期时间，默认取 refresh_expire</text>
+  <text x="654" y="278" font-size="11.5" fill="#475569">并发刷新不会产生两枚有效令牌</text>
+
+  <!-- ④ 黑名单存储 -->
+  <rect x="40" y="314" width="282" height="190" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <line x1="56" y1="336" x2="118" y2="336" stroke="#0D9488" stroke-width="3.5" stroke-linecap="round"/>
+  <text x="56" y="366" font-size="15" font-weight="700" fill="#0F172A">黑名单存储</text>
+  <text x="56" y="386" font-size="11" fill="#0F766E">blacklist() · isBlacklisted()</text>
+  <text x="56" y="418" font-size="11.5" fill="#475569">file / redis / database / memcached</text>
+  <text x="56" y="440" font-size="11.5" fill="#475569">统一键前缀，隔离多应用与多环境</text>
+  <text x="56" y="462" font-size="11.5" fill="#475569">过期条目按 exp 自动回收</text>
+  <text x="56" y="484" font-size="11.5" fill="#475569">配置改一行即可切换驱动</text>
+
+  <!-- ⑤ 高可用 -->
+  <rect x="339" y="314" width="282" height="190" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <line x1="355" y1="336" x2="417" y2="336" stroke="#E11D48" stroke-width="3.5" stroke-linecap="round"/>
+  <text x="355" y="366" font-size="15" font-weight="700" fill="#0F172A">高可用</text>
+  <text x="355" y="386" font-size="11" fill="#BE123C">Resilience</text>
+  <text x="355" y="418" font-size="11.5" fill="#475569">RetryTokenStorage 装饰器自动重试</text>
+  <text x="355" y="440" font-size="11.5" fill="#475569">重试次数与延迟可配置</text>
+  <text x="355" y="462" font-size="11.5" fill="#475569">PSR-3 日志，未注入时静默降级</text>
+  <text x="355" y="484" font-size="11.5" fill="#475569">存储故障默认拒绝，fail_open 可放行</text>
+
+  <!-- ⑥ 框架集成 -->
+  <rect x="638" y="314" width="282" height="190" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <line x1="654" y1="336" x2="716" y2="336" stroke="#4F46E5" stroke-width="3.5" stroke-linecap="round"/>
+  <text x="654" y="366" font-size="15" font-weight="700" fill="#0F172A">框架集成 与 原生 PHP</text>
+  <text x="654" y="386" font-size="11" fill="#4338CA">Integration · Native PHP</text>
+  <text x="654" y="418" font-size="11.5" fill="#475569">中间件：路由级开关 + except 白名单</text>
+  <text x="654" y="440" font-size="11.5" fill="#475569">门面 / 助手函数 / 容器依赖注入</text>
+  <text x="654" y="462" font-size="11.5" fill="#475569">一键安装命令 jwt:install</text>
+  <text x="654" y="484" font-size="11.5" fill="#475569">原生 PHP：Guard 守卫 + createFromFile</text>
+</svg>

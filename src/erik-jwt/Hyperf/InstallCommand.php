@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Erikwang2013\Jwt\Hyperf;
 
 use Erikwang2013\Jwt\JWT;
+use Erikwang2013\Jwt\Mascot;
 use Hyperf\Command\Command;
 use Psr\Container\ContainerInterface;
 
@@ -33,6 +34,8 @@ class InstallCommand extends Command
 
     public function handle(): void
     {
+        $this->line(Mascot::banner());
+
         $source = __DIR__ . '/config/jwt.php';
         $dest   = BASE_PATH . '/config/autoload/jwt.php';
 

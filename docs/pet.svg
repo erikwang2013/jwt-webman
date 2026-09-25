@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="280" viewBox="0 0 240 280" role="img" aria-labelledby="keeTitle keeDesc" shape-rendering="geometricPrecision">
+  <title id="keeTitle">钥匙小卫 Kee — erikwang2013/jwt-webman 项目宠物</title>
+  <desc id="keeDesc">一把会眨眼微笑的金色钥匙，胸口佩戴蓝色盾牌，钥匙刃上的四颗齿代表 webman、Laravel、ThinkPHP、Hyperf 四个框架适配层。</desc>
+  <defs>
+    <linearGradient id="keeGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FDE68A"/>
+      <stop offset=".5" stop-color="#FBBF24"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </linearGradient>
+    <linearGradient id="keeShield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#60A5FA"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 地面投影 -->
+  <ellipse cx="120" cy="252" rx="58" ry="9" fill="#0F172A" opacity=".10"/>
+
+  <g>
+    <animateTransform attributeName="transform" type="translate" values="0 0;0 -6;0 0" keyTimes="0;.5;1" dur="3.4s" repeatCount="indefinite"/>
+
+    <!-- 脚 -->
+    <ellipse cx="108" cy="243" rx="12" ry="8" fill="#1E293B"/>
+    <ellipse cx="132" cy="243" rx="12" ry="8" fill="#1E293B"/>
+
+    <!-- 右臂（挥手，置于身体之后） -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="0 138 148;-14 138 148;0 138 148" keyTimes="0;.5;1" dur="1.8s" repeatCount="indefinite"/>
+      <path d="M138 150 C154 146 168 134 172 118" fill="none" stroke="#1E293B" stroke-width="19" stroke-linecap="round"/>
+      <path d="M138 150 C154 146 168 134 172 118" fill="none" stroke="#F59E0B" stroke-width="11" stroke-linecap="round"/>
+      <circle cx="172" cy="116" r="11" fill="#FBBF24" stroke="#1E293B" stroke-width="5"/>
+    </g>
+
+    <!-- 左臂 -->
+    <path d="M98 170 C84 174 76 184 76 196" fill="none" stroke="#1E293B" stroke-width="19" stroke-linecap="round"/>
+    <path d="M98 170 C84 174 76 184 76 196" fill="none" stroke="#F59E0B" stroke-width="11" stroke-linecap="round"/>
+    <circle cx="76" cy="198" r="11" fill="#FBBF24" stroke="#1E293B" stroke-width="5"/>
+
+    <!-- 身体 = 钥匙刃，右侧四颗齿 = 四个框架适配层 -->
+    <path d="M96 110 H144 V150 h16 a5 5 0 0 1 0 10 h-16 V166 h16 a5 5 0 0 1 0 10 h-16 V182 h16 a5 5 0 0 1 0 10 h-16 V198 h16 a5 5 0 0 1 0 10 h-16 V216 a20 20 0 0 1 -20 20 H116 a20 20 0 0 1 -20 -20 Z"
+          fill="url(#keeGold)" stroke="#1E293B" stroke-width="5" stroke-linejoin="round"/>
+
+    <!-- 盾牌（校验与黑名单） -->
+    <path d="M120 154 L142 162 V182 C142 198 132 207 120 213 C108 207 98 198 98 182 V162 Z"
+          fill="url(#keeShield)" stroke="#1E293B" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M109 182 l8 8 l15 -17" fill="none" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <g transform="translate(120 182)">
+      <path d="M0 -28 L22 -20 V0 C22 16 12 25 0 31 C-12 25 -22 16 -22 0 V-20 Z" fill="none" stroke="#60A5FA" stroke-width="3">
+        <animateTransform attributeName="transform" type="scale" values=".85;1.32;1.32" keyTimes="0;.7;1" dur="2.6s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values=".65;0;0" keyTimes="0;.7;1" dur="2.6s" repeatCount="indefinite"/>
+      </path>
+    </g>
+
+    <!-- 头（钥匙柄） -->
+    <circle cx="120" cy="78" r="48" fill="url(#keeGold)" stroke="#1E293B" stroke-width="5"/>
+    <ellipse cx="101" cy="57" rx="16" ry="10" fill="#FFFBEB" opacity=".55" transform="rotate(-24 101 57)"/>
+
+    <!-- 表情 -->
+    <ellipse cx="102" cy="86" rx="6" ry="7.5" fill="#1F2937">
+      <animate attributeName="ry" values="7.5;7.5;1;7.5" keyTimes="0;.92;.96;1" dur="4.6s" repeatCount="indefinite"/>
+    </ellipse>
+    <ellipse cx="138" cy="86" rx="6" ry="7.5" fill="#1F2937">
+      <animate attributeName="ry" values="7.5;7.5;1;7.5" keyTimes="0;.92;.96;1" dur="4.6s" repeatCount="indefinite"/>
+    </ellipse>
+    <circle cx="104" cy="83" r="2.2" fill="#FFFFFF"/>
+    <circle cx="140" cy="83" r="2.2" fill="#FFFFFF"/>
+    <circle cx="91" cy="99" r="7" fill="#FB7185" opacity=".4"/>
+    <circle cx="149" cy="99" r="7" fill="#FB7185" opacity=".4"/>
+    <path d="M108 97 q12 14 24 0" fill="none" stroke="#1F2937" stroke-width="4.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- 光点 -->
+  <path d="M44 48 l3.2 6.8 6.8 3.2 -6.8 3.2 -3.2 6.8 -3.2 -6.8 -6.8 -3.2 6.8 -3.2 z" fill="#FBBF24">
+    <animate attributeName="opacity" values=".2;1;.2" dur="2.8s" repeatCount="indefinite"/>
+  </path>
+  <path d="M196 186 l2.6 5.4 5.4 2.6 -5.4 2.6 -2.6 5.4 -2.6 -5.4 -5.4 -2.6 5.4 -2.6 z" fill="#2563EB">
+    <animate attributeName="opacity" values=".2;1;.2" dur="2.8s" begin="0.9s" repeatCount="indefinite"/>
+  </path>
+  <path d="M190 84 l2.2 4.6 4.6 2.2 -4.6 2.2 -2.2 4.6 -2.2 -4.6 -4.6 -2.2 4.6 -2.2 z" fill="#0D9488">
+    <animate attributeName="opacity" values=".2;1;.2" dur="2.8s" begin="1.7s" repeatCount="indefinite"/>
+  </path>
+</svg>

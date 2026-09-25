@@ -26,9 +26,14 @@ class JwtWrapper
         return $this->jwt->refresh($token);
     }
 
-    public function verify(string $token): object
+    /**
+     * 校验令牌并返回 payload 对象
+     *
+     * $token 为 null 时自动从当前请求的 Authorization 头获取，原生 PHP 入口脚本里可直接调用。
+     */
+    public function verify(?string $token = null): object
     {
-        return (object) $this->jwt->decode($token);
+        return (object) $this->jwt->decode($token ?? $this->currentToken());
     }
 
     public function decode(string $token): array
@@ -53,15 +58,11 @@ class JwtWrapper
 
     private function currentToken(): string
     {
-        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-        if ($header === '' && function_exists('getallheaders')) {
-            $headers = getallheaders();
-            $header = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-        }
-        $token = JWT::bearerToken($header);
+        $token = JWT::requestToken();
         if ($token === '') {
             throw JWTException::invalid('No Bearer token found in request');
         }
+
         return $token;
     }
 }

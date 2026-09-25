@@ -29,6 +29,7 @@ class JWT
     private $leeway;
     private $config;
     private $logger;
+    private $failOpen;
 
     public function __construct(
         array $config,
@@ -42,6 +43,8 @@ class JWT
         $this->leeway       = (int)($config['leeway'] ?? 0);
         $this->tokenStorage = $config['_token_storage'] ?? new FileTokenStorage();
         $this->logger       = $logger ?? new NullLogger();
+        // 黑名单存储故障时的策略：false（默认）拒绝所有令牌，true 放行并记 error 日志
+        $this->failOpen     = (bool) ($config['storage']['fail_open'] ?? false);
 
         // firebase/php-jwt v7 rejects keys shorter than 32 bytes
         if (strlen($this->secretKey) < 32) {
@@ -102,7 +105,7 @@ class JWT
             if ($this->audience !== '' && !$this->audMatches($payload['aud'] ?? null)) {
                 throw JWTException::invalid('Invalid audience');
             }
-            if (isset($payload['jti']) && $this->tokenStorage->isBlacklisted($payload['jti'])) {
+            if (isset($payload['jti']) && $this->isBlacklistedJti($payload['jti'])) {
                 throw JWTException::blacklisted();
             }
 
@@ -116,6 +119,22 @@ class JWT
         } catch (\Exception $e) {
             $this->logger->error($e->getMessage());
             throw JWTException::invalid($e->getMessage());
+        }
+    }
+
+    /**
+     * 查询 jti 是否在黑名单。存储故障时按 storage.fail_open 决定放行还是抛出。
+     */
+    private function isBlacklistedJti(string $jti): bool
+    {
+        try {
+            return $this->tokenStorage->isBlacklisted($jti);
+        } catch (JWTException $e) {
+            if ($e->getCode() !== JWTException::STORAGE_ERROR || !$this->failOpen) {
+                throw $e;
+            }
+            $this->logger->error('Blacklist check failed, fail-open enabled: ' . $e->getMessage());
+            return false;
         }
     }
 
@@ -143,8 +162,10 @@ class JWT
 
     /**
      * 刷新令牌
+     *
+     * $newExpire 为 0 时使用配置的 refresh_expire（默认 7200 秒），与 encode() 保持一致。
      */
-    public function refresh(string $token, int $newExpire = 3600): string
+    public function refresh(string $token, int $newExpire = 0): string
     {
         $payload = $this->decode($token);
 
@@ -252,6 +273,32 @@ class JWT
     public function setTokenStorage(TokenStorageInterface $tokenStorage): void
     {
         $this->tokenStorage = $tokenStorage;
+    }
+
+    /**
+     * 从当前请求提取 Bearer token，未携带时返回空串。
+     *
+     * 依次检查 $_SERVER['HTTP_AUTHORIZATION']、REDIRECT_HTTP_AUTHORIZATION
+     * （Apache / nginx 重写转发后的落点）与 getallheaders()（大小写不敏感），
+     * 适用于原生 PHP 与 PHP-FPM。
+     */
+    public static function requestToken(): string
+    {
+        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+
+        if ($header === '' && function_exists('getallheaders')) {
+            $headers = getallheaders();
+            if (is_array($headers)) {
+                foreach ($headers as $name => $value) {
+                    if (strcasecmp((string) $name, 'Authorization') === 0) {
+                        $header = (string) $value;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return self::bearerToken($header);
     }
 
     public static function bearerToken($header): string

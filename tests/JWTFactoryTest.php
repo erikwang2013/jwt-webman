@@ -206,4 +206,52 @@ class JWTFactoryTest extends TestCase
         $token = $jwt->encode(['uid' => 8]);
         $this->assertSame(8, $jwt->decode($token)['uid']);
     }
+
+    public function testCreateFromFileLoadsNativeConfig(): void
+    {
+        $dir = sys_get_temp_dir() . '/jwt_cfg_' . bin2hex(random_bytes(6));
+        mkdir($dir, 0755, true);
+        $file = $dir . '/jwt.php';
+
+        file_put_contents($file, '<?php return ' . var_export([
+            'secret_key'     => $this->baseConfig['secret_key'],
+            'storage'        => ['type' => 'file', 'path' => $dir . '/bl'],
+        ], true) . ';');
+
+        try {
+            $jwt = JWTFactory::createFromFile($file);
+            $this->assertInstanceOf(JWT::class, $jwt);
+            $token = $jwt->encode(['uid' => 9]);
+            $this->assertSame(9, $jwt->decode($token)['uid']);
+        } finally {
+            @unlink($file);
+            @rmdir($dir . '/bl');
+            @rmdir($dir);
+        }
+    }
+
+    public function testCreateFromFileThrowsForMissingFile(): void
+    {
+        $this->expectException(JWTException::class);
+        JWTFactory::createFromFile('/nonexistent/jwt.php');
+    }
+
+    public function testNativeConfigTemplateIsLoadable(): void
+    {
+        $path = sys_get_temp_dir() . '/jwt_native_' . bin2hex(random_bytes(6));
+        putenv('JWT_SECRET_KEY=' . $this->baseConfig['secret_key']);
+        putenv('JWT_STORAGE_TYPE=file');
+        putenv('JWT_STORAGE_PATH=' . $path);
+
+        try {
+            $jwt = JWTFactory::createFromFile(__DIR__ . '/../src/erik-jwt/Native/config/jwt.php');
+            $this->assertInstanceOf(JWT::class, $jwt);
+            $this->assertSame(9, $jwt->decode($jwt->encode(['uid' => 9]))['uid']);
+        } finally {
+            putenv('JWT_SECRET_KEY');
+            putenv('JWT_STORAGE_TYPE');
+            putenv('JWT_STORAGE_PATH');
+            @rmdir($path);
+        }
+    }
 }

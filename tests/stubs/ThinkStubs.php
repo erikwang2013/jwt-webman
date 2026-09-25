@@ -156,6 +156,11 @@ namespace think\console {
             {
                 $GLOBALS['__jwt_fw']['outputs'][] = $message;
             }
+
+            public function writeln(string $message): void
+            {
+                $GLOBALS['__jwt_fw']['outputs'][] = $message;
+            }
         }
     }
 }

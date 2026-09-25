@@ -53,6 +53,40 @@ class DatabaseTokenStorageTest extends TestCase
         $this->assertSame(0, (int) $stmt->fetchColumn());
     }
 
+    public function testDuplicateBlacklistFallsBackToUpdateInSilentMode(): void
+    {
+        // PDO 默认的 ERRMODE_SILENT 下 execute() 只返回 false，重复主键不能静默丢失
+        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
+        $storage = new DatabaseTokenStorage($this->pdo, 'silent_bl');
+        $jti = 'a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6';
+
+        $this->assertTrue($storage->blacklist($jti, time() + 3600));
+        $this->assertTrue($storage->blacklist($jti, time() + 7200));
+        $this->assertTrue($storage->isBlacklisted($jti));
+
+        $stmt = $this->pdo->query("SELECT expire_time FROM silent_bl WHERE jti = '{$jti}'");
+        $this->assertGreaterThan(time() + 7190, (int) $stmt->fetchColumn());
+    }
+
+    public function testIsBlacklistedThrowsWhenQueryFailsInsteadOfFailingOpen(): void
+    {
+        $storage = new DatabaseTokenStorage($this->pdo, 'broken_bl');
+        $this->pdo->exec('DROP TABLE broken_bl');
+
+        $this->expectException(\Erikwang2013\Jwt\JWTException::class);
+        $this->expectExceptionCode(\Erikwang2013\Jwt\JWTException::STORAGE_ERROR);
+        $storage->isBlacklisted('a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6');
+    }
+
+    public function testAutoCreateTableCanBeDisabled(): void
+    {
+        $storage = new DatabaseTokenStorage($this->pdo, 'no_ddl_table', false);
+        $this->assertInstanceOf(DatabaseTokenStorage::class, $storage);
+
+        $tables = $this->pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='no_ddl_table'");
+        $this->assertFalse($tables->fetchColumn());
+    }
+
     public function testInvalidTableNameThrows(): void
     {
         $this->expectException(\Erikwang2013\Jwt\JWTException::class);

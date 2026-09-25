@@ -125,6 +125,11 @@ namespace Hyperf\Command {
                 $GLOBALS['__jwt_fw']['outputs'][] = $message;
             }
 
+            public function line(string $message): void
+            {
+                $GLOBALS['__jwt_fw']['outputs'][] = $message;
+            }
+
             public function getName(): string
             {
                 return $this->name;

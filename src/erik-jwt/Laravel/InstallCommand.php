@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Erikwang2013\Jwt\Laravel;
 
 use Erikwang2013\Jwt\JWT;
+use Erikwang2013\Jwt\Mascot;
 use Illuminate\Console\Command;
 
 class InstallCommand extends Command
@@ -21,6 +22,8 @@ class InstallCommand extends Command
 
     public function handle(): int
     {
+        $this->line(Mascot::banner());
+
         $this->call('vendor:publish', ['--tag' => 'jwt-config']);
 
         $secretKey = bin2hex(random_bytes(32));

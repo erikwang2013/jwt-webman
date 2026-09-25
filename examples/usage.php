@@ -50,6 +50,24 @@ try {
         echo "Token correctly identified as blacklisted\n";
     }
 
+    // 原生 PHP（无框架）：从配置文件创建，用 Guard 守卫入口脚本
+    $configFile = __DIR__ . '/jwt.config.php';
+    file_put_contents($configFile, '<?php return ' . var_export($config, true) . ';');
+
+    $guard = \Erikwang2013\Jwt\Native\Guard::fromFile($configFile);
+    $requestToken = $guard->getJWT()->encode(['user_id' => 123]);
+
+    // 模拟带 Authorization: Bearer 的请求
+    $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $requestToken;
+    echo "Guard payload for user: " . $guard->authenticate()['user_id'] . "\n";
+    echo "Guard check: " . ($guard->check() ? 'valid' : 'invalid') . "\n";
+    unset($_SERVER['HTTP_AUTHORIZATION']);
+
+    // 未携带令牌时 check() 返回 false，authenticate() 抛 JWTException
+    echo "Guard without token: " . ($guard->check() ? 'valid' : 'invalid') . "\n";
+
+    unlink($configFile);
+
 } catch (JWTException $e) {
     switch ($e->getCode()) {
         case JWTException::STORAGE_ERROR:

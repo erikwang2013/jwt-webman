@@ -14,13 +14,17 @@ namespace Erikwang2013\Jwt;
 
 use PDO;
 use PDOException;
+use PDOStatement;
 
 class DatabaseTokenStorage implements TokenStorageInterface
 {
+    /** 主键/唯一键冲突：MySQL 与 SQLite 为 23000，PostgreSQL 为 23505 */
+    private const DUPLICATE_KEY_SQLSTATES = ['23000', '23505'];
+
     private $pdo;
     private $tableName;
 
-    public function __construct(PDO $pdo, string $tableName = 'jwt_blacklist')
+    public function __construct(PDO $pdo, string $tableName = 'jwt_blacklist', bool $autoCreate = true)
     {
         $this->pdo = $pdo;
         $this->tableName = $tableName;
@@ -29,10 +33,8 @@ class DatabaseTokenStorage implements TokenStorageInterface
             throw JWTException::configError("Invalid table name: {$this->tableName}");
         }
 
-        try {
+        if ($autoCreate) {
             $this->createTableIfNotExists();
-        } catch (PDOException $e) {
-            throw JWTException::storageError('Failed to create table: ' . $e->getMessage());
         }
     }
 
@@ -45,7 +47,9 @@ class DatabaseTokenStorage implements TokenStorageInterface
         )";
 
         try {
-            $this->pdo->exec($sql);
+            if ($this->pdo->exec($sql) === false) {
+                throw JWTException::storageError('Failed to create table: ' . $this->pdoError());
+            }
         } catch (PDOException $e) {
             throw JWTException::storageError('Failed to create table: ' . $e->getMessage());
         }
@@ -54,19 +58,33 @@ class DatabaseTokenStorage implements TokenStorageInterface
     public function blacklist(string $jti, int $expireTime): bool
     {
         try {
-            $sql = "INSERT INTO {$this->tableName} (jti, expire_time) VALUES (?, ?)";
-            $stmt = $this->pdo->prepare($sql);
+            $stmt = $this->prepare("INSERT INTO {$this->tableName} (jti, expire_time) VALUES (?, ?)");
+
             try {
-                return $stmt->execute([$jti, $expireTime]);
+                $inserted = $stmt->execute([$jti, $expireTime]);
+                $sqlState = $stmt->errorInfo()[0] ?? null;
             } catch (PDOException $e) {
-                if ($e->getCode() != '23000' && ($e->errorInfo[0] ?? null) !== '23000') {
-                    throw JWTException::storageError('Database operation failed: ' . $e->getMessage());
-                }
-                // 主键冲突时更新过期时间
-                $sql = "UPDATE {$this->tableName} SET expire_time = ? WHERE jti = ?";
-                $stmt = $this->pdo->prepare($sql);
-                return $stmt->execute([$expireTime, $jti]);
+                // ERRMODE_EXCEPTION 下重复主键在这里抛出
+                $inserted = false;
+                $sqlState = $e->errorInfo[0] ?? $e->getCode();
             }
+
+            if ($inserted) {
+                return true;
+            }
+
+            // ERRMODE_SILENT（PDO 默认）下 execute() 只返回 false，必须显式判断 SQLSTATE
+            if (!in_array((string) $sqlState, self::DUPLICATE_KEY_SQLSTATES, true)) {
+                throw JWTException::storageError('Database operation failed: ' . $this->pdoError());
+            }
+
+            // 主键冲突：令牌已在黑名单中，只更新过期时间，保证幂等
+            $update = $this->prepare("UPDATE {$this->tableName} SET expire_time = ? WHERE jti = ?");
+            if (!$update->execute([$expireTime, $jti])) {
+                throw JWTException::storageError('Database operation failed: ' . $this->pdoError());
+            }
+
+            return true;
         } catch (PDOException $e) {
             throw JWTException::storageError('Database operation failed: ' . $e->getMessage());
         }
@@ -75,9 +93,12 @@ class DatabaseTokenStorage implements TokenStorageInterface
     public function isBlacklisted(string $jti): bool
     {
         try {
-            $sql = "SELECT 1 FROM {$this->tableName} WHERE jti = ? AND expire_time > ?";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([$jti, time()]);
+            $stmt = $this->prepare("SELECT 1 FROM {$this->tableName} WHERE jti = ? AND expire_time > ?");
+            // 查询失败必须抛出，静默返回 false 会放行本应拦截的令牌
+            if (!$stmt->execute([$jti, time()])) {
+                throw JWTException::storageError('Database operation failed: ' . $this->pdoError());
+            }
+
             return $stmt->fetchColumn() !== false;
         } catch (PDOException $e) {
             throw JWTException::storageError('Database operation failed: ' . $e->getMessage());
@@ -87,11 +108,34 @@ class DatabaseTokenStorage implements TokenStorageInterface
     public function cleanup(): bool
     {
         try {
-            $sql = "DELETE FROM {$this->tableName} WHERE expire_time <= ?";
-            $stmt = $this->pdo->prepare($sql);
-            return $stmt->execute([time()]);
+            $stmt = $this->prepare("DELETE FROM {$this->tableName} WHERE expire_time <= ?");
+            if (!$stmt->execute([time()])) {
+                throw JWTException::storageError('Database operation failed: ' . $this->pdoError());
+            }
+
+            return true;
         } catch (PDOException $e) {
             throw JWTException::storageError('Database operation failed: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * PDO::prepare 在 ERRMODE_SILENT 下失败会返回 false，直接调用会触发致命错误。
+     */
+    private function prepare(string $sql): PDOStatement
+    {
+        $stmt = $this->pdo->prepare($sql);
+        if (!$stmt instanceof PDOStatement) {
+            throw JWTException::storageError('Database prepare failed: ' . $this->pdoError());
+        }
+
+        return $stmt;
+    }
+
+    private function pdoError(): string
+    {
+        $info = $this->pdo->errorInfo();
+
+        return (string) ($info[2] ?? $info[0] ?? 'unknown error');
     }
 }

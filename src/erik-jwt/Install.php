@@ -28,6 +28,7 @@ class Install
      */
     public static function install()
     {
+        echo Mascot::banner();
         static::installByRelation();
     }
 

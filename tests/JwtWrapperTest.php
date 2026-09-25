@@ -128,4 +128,22 @@ class JwtWrapperTest extends TestCase
         $this->assertNotSame($token, $newToken);
         unset($_SERVER['HTTP_AUTHORIZATION']);
     }
+
+    public function testVerifyWithoutArgumentReadsRequestHeader(): void
+    {
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $this->jwt->create(['uid' => 7]);
+
+        $payload = $this->jwt->verify();
+        $this->assertSame(7, $payload->uid);
+
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+    }
+
+    public function testVerifyWithoutTokenThrows(): void
+    {
+        unset($_SERVER['HTTP_AUTHORIZATION'], $_SERVER['REDIRECT_HTTP_AUTHORIZATION']);
+
+        $this->expectException(JWTException::class);
+        $this->jwt->verify();
+    }
 }

@@ -4,6 +4,7 @@ namespace Erikwang2013\Jwt\Tests;
 use Erikwang2013\Jwt\JWT;
 use Erikwang2013\Jwt\JWTException;
 use Erikwang2013\Jwt\FileTokenStorage;
+use Erikwang2013\Jwt\TokenStorageInterface;
 use Firebase\JWT\JWT as FirebaseJWT;
 use PHPUnit\Framework\TestCase;
 
@@ -37,6 +38,75 @@ class JWTTest extends TestCase
             foreach ($files as $f) { unlink("{$this->tempDir}/{$f}"); }
             rmdir($this->tempDir);
         }
+    }
+
+    /**
+     * 存储全部操作都失败的替身，用于验证 fail_open 策略。
+     */
+    private function brokenStorage(): TokenStorageInterface
+    {
+        return new class implements TokenStorageInterface {
+            public function blacklist(string $jti, int $expireTime): bool
+            {
+                throw JWTException::storageError('storage down');
+            }
+
+            public function isBlacklisted(string $jti): bool
+            {
+                throw JWTException::storageError('storage down');
+            }
+
+            public function cleanup(): bool
+            {
+                throw JWTException::storageError('storage down');
+            }
+        };
+    }
+
+    public function testStorageFailureIsFailClosedByDefault(): void
+    {
+        $config = $this->validConfig;
+        $config['_token_storage'] = $this->brokenStorage();
+        $jwt = new JWT($config);
+        $token = $jwt->encode(['uid' => 1]);
+
+        $this->expectException(JWTException::class);
+        $this->expectExceptionCode(JWTException::STORAGE_ERROR);
+        $jwt->decode($token);
+    }
+
+    public function testStorageFailureWithFailOpenStillDecodes(): void
+    {
+        $config = $this->validConfig;
+        $config['_token_storage'] = $this->brokenStorage();
+        $config['storage'] = ['fail_open' => true];
+        $jwt = new JWT($config);
+        $token = $jwt->encode(['uid' => 1]);
+
+        $this->assertSame(1, $jwt->decode($token)['uid']);
+    }
+
+    public function testRefreshUsesConfiguredRefreshExpire(): void
+    {
+        $jwt = new JWT($this->validConfig);
+        $token = $jwt->encode(['uid' => 1, 'token_type' => 'refresh']);
+        $payload = $jwt->getPayloadWithoutValidation($jwt->refresh($token));
+
+        // refresh() 不传过期时间时使用配置的 refresh_expire（7200），而不是硬编码值
+        $this->assertEqualsWithDelta(time() + 7200, $payload['exp'], 5);
+    }
+
+    public function testRequestTokenReadsServerAndRedirectHeaders(): void
+    {
+        $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] = 'Bearer redirected-token';
+        $this->assertSame('redirected-token', JWT::requestToken());
+        unset($_SERVER['REDIRECT_HTTP_AUTHORIZATION']);
+
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer direct-token';
+        $this->assertSame('direct-token', JWT::requestToken());
+        unset($_SERVER['HTTP_AUTHORIZATION']);
+
+        $this->assertSame('', JWT::requestToken());
     }
 
     public function testEncodeDecode(): void

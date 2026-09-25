@@ -1,11 +1,13 @@
 {
     "name": "erikwang2013/jwt-webman",
-    "description": "A JWT plugin compatible with webman, Laravel, ThinkPHP, and Hyperf. Suitable for distributed deployment, simple and fast installation.",
+    "description": "A framework-agnostic JWT plugin for plain PHP and webman, Laravel, ThinkPHP, Hyperf: one core, a request guard or four native adapters, pluggable blacklist storage (redis / database / file / memcached).",
     "keywords": [
         "erik",
         "erikwang2013",
         "erik",
         "jwt",
+        "php",
+        "framework-agnostic",
         "webman",
         "laravel",
         "thinkphp",

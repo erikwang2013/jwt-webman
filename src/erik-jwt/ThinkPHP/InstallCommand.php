@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Erikwang2013\Jwt\ThinkPHP;
 
 use Erikwang2013\Jwt\JWT;
+use Erikwang2013\Jwt\Mascot;
 use think\console\Command;
 use think\console\Input;
 use think\console\Output;
@@ -26,6 +27,8 @@ class InstallCommand extends Command
 
     protected function execute(Input $input, Output $output): int
     {
+        $output->writeln(Mascot::banner());
+
         $source = __DIR__ . '/config/jwt.php';
         $dest   = app()->getConfigPath() . 'jwt.php';
 
