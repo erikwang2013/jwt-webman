@@ -25,12 +25,18 @@ jobs:
           latest=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 | sed 's/^v//')
           latest=${latest:-0.0.0}
           bump=patch
+          # base 必须在循环外解析：进程替换在进入循环前就展开，放在循环里只会得到空范围（恒为 patch）
+          base=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          echo "commit range: $base..HEAD"
           while read -r msg; do
+            [ -n "$msg" ] || continue
             case "$msg" in
               *BREAKING*|*'major:'*) bump=major ;;
-              *'feat:'*|*'feature:'*|*'minor:'*|*'新增'*|*'特性'*) [ "$bump" = patch ] && bump=minor ;;
+              *'feat:'*|*'feature:'*|*'minor:'*|*'新增'*|*'特性'*)
+                # if 而非 && ：&& 列表失败会触发 set -e 中断整个步骤
+                if [ "$bump" = patch ]; then bump=minor; fi
+                ;;
             esac
-          base=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
           done < <(git log "$base..HEAD" --format=%s 2>/dev/null)
           IFS='.' read -r maj min pat <<< "$latest"
           case "$bump" in
