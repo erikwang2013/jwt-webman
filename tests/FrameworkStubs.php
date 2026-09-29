@@ -17,3 +17,5 @@ require_once __DIR__ . '/stubs/LaravelStubs.php';
 require_once __DIR__ . '/stubs/ThinkStubs.php';
 require_once __DIR__ . '/stubs/WebmanStubs.php';
 require_once __DIR__ . '/stubs/HyperfStubs.php';
+require_once __DIR__ . '/stubs/YiiStubs.php';
+require_once __DIR__ . '/stubs/Yii3Stubs.php';

@@ -15,8 +15,9 @@ namespace Erikwang2013\Jwt;
 /**
  * 项目宠物「钥匙小卫 Kee」。
  *
- * 造型取意：钥匙柄（带表情的圆头）= 框架无关内核，钥匙刃右侧的四颗齿 =
- * webman / Laravel / ThinkPHP / Hyperf 四个框架适配层，胸前的盾牌 = 校验与黑名单。
+ * 造型取意：钥匙柄（带表情的圆头）= 框架无关内核，钥匙刃右侧的齿 =
+ * webman / Laravel / ThinkPHP / Hyperf / Yii2 / Yii3 六个框架适配层，
+ * 胸前的盾牌 = 校验与黑名单。
  * 矢量形象见 docs/pet.svg，安装命令与项目文档共用同一形象。
  */
 final class Mascot
@@ -76,7 +77,7 @@ ART;
             implode("\n", $art),
             '',
             '  ' . self::paint('erikwang2013/jwt-webman', $color, self::BOLD) . self::paint('  ·  PHP 多框架 JWT 认证插件', $color, self::DIM),
-            '  ' . self::paint(self::CN_NAME . ' ' . self::NAME . ' 已就位 —— 一套核心 · 四框架通行', $color, self::GOLD),
+            '  ' . self::paint(self::CN_NAME . ' ' . self::NAME . ' 已就位 —— 一套核心 · 六框架通行', $color, self::GOLD),
             '  ' . self::HOME,
             '',
         ];

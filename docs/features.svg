@@ -5,7 +5,7 @@
 
   <rect x="0" y="0" width="960" height="560" rx="18" fill="#F8FAFC" stroke="#E2E8F0"/>
   <text x="40" y="52" font-size="22" font-weight="700" fill="#0F172A">功能设计 · Features</text>
-  <text x="40" y="78" font-size="13" fill="#64748B">六大功能域覆盖令牌全流程，原生 PHP 与四种框架共用同一套 API 与配置结构</text>
+  <text x="40" y="78" font-size="13" fill="#64748B">六大功能域覆盖令牌全流程，原生 PHP 与六种框架共用同一套 API 与配置结构</text>
 
   <!-- ① 令牌签发 -->
   <rect x="40" y="108" width="282" height="190" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>

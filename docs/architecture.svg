@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720" role="img" aria-labelledby="archTitle archDesc"
      font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif">
   <title id="archTitle">erikwang2013/jwt-webman 架构设计</title>
-  <desc id="archDesc">四层架构：接入层（原生 PHP Guard 与 webman / Laravel / ThinkPHP / Hyperf 四框架适配）、框架无关核心层（JWT / JWTFactory / JwtWrapper / 支撑组件）、可插拔存储层（TokenStorageInterface + RetryTokenStorage 装饰器 + redis / database / file / memcached 四驱动）、底层依赖（firebase/php-jwt 与 PSR-3 日志）。</desc>
+  <desc id="archDesc">四层架构：接入层（原生 PHP Guard 与 webman / Laravel / ThinkPHP / Hyperf / Yii2 / Yii3 六框架适配）、框架无关核心层（JWT / JWTFactory / JwtWrapper / 支撑组件）、可插拔存储层（TokenStorageInterface + RetryTokenStorage 装饰器 + redis / database / file / memcached 四驱动）、底层依赖（firebase/php-jwt 与 PSR-3 日志）。</desc>
   <defs>
     <marker id="ar" markerWidth="9" markerHeight="9" refX="7.5" refY="4.5" orient="auto">
       <path d="M0 0 L9 4.5 L0 9 z" fill="#94A3B8"/>
@@ -11,47 +11,61 @@
   <rect x="0" y="0" width="960" height="720" rx="18" fill="#F8FAFC" stroke="#E2E8F0"/>
 
   <text x="40" y="52" font-size="22" font-weight="700" fill="#0F172A">架构设计 · Architecture</text>
-  <text x="40" y="78" font-size="13" fill="#64748B">一套框架无关内核 + 五种接入方式 + 四种存储驱动，外部依赖全部构造注入</text>
+  <text x="40" y="78" font-size="13" fill="#64748B">一套框架无关内核 + 七种接入方式 + 四种存储驱动，外部依赖全部构造注入</text>
 
   <!-- ══════════ 接入层 ══════════ -->
   <rect x="40" y="100" width="880" height="132" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
-  <text x="56" y="126" font-size="13" font-weight="700" fill="#7C3AED">接入层 · Integrations（原生 PHP 与四框架，彼此互不感知）</text>
+  <text x="56" y="126" font-size="13" font-weight="700" fill="#7C3AED">接入层 · Integrations（原生 PHP 与六框架，彼此互不感知）</text>
 
-  <rect x="56" y="136" width="163" height="84" rx="10" fill="#FAF5FF" stroke="#DDD6FE"/>
-  <text x="68" y="158" font-size="13" font-weight="700" fill="#6D28D9">原生 PHP</text>
-  <text x="68" y="176" font-size="10.5" fill="#6B7280">Guard 请求守卫</text>
-  <text x="68" y="193" font-size="10.5" fill="#6B7280">createFromFile()</text>
-  <text x="68" y="210" font-size="10.5" fill="#6B7280">零框架依赖</text>
+  <rect x="54" y="136" width="115" height="84" rx="10" fill="#FAF5FF" stroke="#DDD6FE"/>
+  <text x="64" y="158" font-size="13" font-weight="700" fill="#6D28D9">原生 PHP</text>
+  <text x="64" y="176" font-size="10" fill="#6B7280">Guard 请求守卫</text>
+  <text x="64" y="193" font-size="10" fill="#6B7280">createFromFile()</text>
+  <text x="64" y="210" font-size="10" fill="#6B7280">零框架依赖</text>
 
-  <rect x="231" y="136" width="163" height="84" rx="10" fill="#FAF5FF" stroke="#DDD6FE"/>
-  <text x="243" y="158" font-size="13" font-weight="700" fill="#6D28D9">webman</text>
-  <text x="243" y="176" font-size="10.5" fill="#6B7280">Middleware</text>
-  <text x="243" y="193" font-size="10.5" fill="#6B7280">插件自动注册</text>
-  <text x="243" y="210" font-size="10.5" fill="#6B7280">Install 入口</text>
+  <rect x="177" y="136" width="115" height="84" rx="10" fill="#FAF5FF" stroke="#DDD6FE"/>
+  <text x="187" y="158" font-size="13" font-weight="700" fill="#6D28D9">webman</text>
+  <text x="187" y="176" font-size="10" fill="#6B7280">Middleware</text>
+  <text x="187" y="193" font-size="10" fill="#6B7280">插件自动注册</text>
+  <text x="187" y="210" font-size="10" fill="#6B7280">Install 入口</text>
 
-  <rect x="406" y="136" width="163" height="84" rx="10" fill="#FAF5FF" stroke="#DDD6FE"/>
-  <text x="418" y="158" font-size="13" font-weight="700" fill="#6D28D9">Laravel</text>
-  <text x="418" y="176" font-size="10.5" fill="#6B7280">ServiceProvider</text>
-  <text x="418" y="193" font-size="10.5" fill="#6B7280">Facade · Middleware</text>
-  <text x="418" y="210" font-size="10.5" fill="#6B7280">InstallCommand</text>
+  <rect x="300" y="136" width="115" height="84" rx="10" fill="#FAF5FF" stroke="#DDD6FE"/>
+  <text x="310" y="158" font-size="13" font-weight="700" fill="#6D28D9">Laravel</text>
+  <text x="310" y="176" font-size="10" fill="#6B7280">ServiceProvider</text>
+  <text x="310" y="193" font-size="10" fill="#6B7280">Facade 门面</text>
+  <text x="310" y="210" font-size="10" fill="#6B7280">InstallCommand</text>
 
-  <rect x="581" y="136" width="163" height="84" rx="10" fill="#FAF5FF" stroke="#DDD6FE"/>
-  <text x="593" y="158" font-size="13" font-weight="700" fill="#6D28D9">ThinkPHP</text>
-  <text x="593" y="176" font-size="10.5" fill="#6B7280">Service · Facade</text>
-  <text x="593" y="193" font-size="10.5" fill="#6B7280">Middleware</text>
-  <text x="593" y="210" font-size="10.5" fill="#6B7280">InstallCommand</text>
+  <rect x="423" y="136" width="115" height="84" rx="10" fill="#FAF5FF" stroke="#DDD6FE"/>
+  <text x="433" y="158" font-size="13" font-weight="700" fill="#6D28D9">ThinkPHP</text>
+  <text x="433" y="176" font-size="10" fill="#6B7280">Service · Facade</text>
+  <text x="433" y="193" font-size="10" fill="#6B7280">Middleware</text>
+  <text x="433" y="210" font-size="10" fill="#6B7280">InstallCommand</text>
 
-  <rect x="756" y="136" width="163" height="84" rx="10" fill="#FAF5FF" stroke="#DDD6FE"/>
-  <text x="768" y="158" font-size="13" font-weight="700" fill="#6D28D9">Hyperf</text>
-  <text x="768" y="176" font-size="10.5" fill="#6B7280">ConfigProvider</text>
-  <text x="768" y="193" font-size="10.5" fill="#6B7280">Middleware · AOP</text>
-  <text x="768" y="210" font-size="10.5" fill="#6B7280">#[JWT] · InstallCommand</text>
+  <rect x="546" y="136" width="115" height="84" rx="10" fill="#FAF5FF" stroke="#DDD6FE"/>
+  <text x="556" y="158" font-size="13" font-weight="700" fill="#6D28D9">Hyperf</text>
+  <text x="556" y="176" font-size="10" fill="#6B7280">ConfigProvider</text>
+  <text x="556" y="193" font-size="10" fill="#6B7280">Middleware · AOP</text>
+  <text x="556" y="210" font-size="10" fill="#6B7280">InstallCommand</text>
 
-  <path d="M137 234 V256" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#ar)"/>
-  <path d="M312 234 V256" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#ar)"/>
-  <path d="M487 234 V256" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#ar)"/>
-  <path d="M662 234 V256" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#ar)"/>
-  <path d="M837 234 V256" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#ar)"/>
+  <rect x="669" y="136" width="115" height="84" rx="10" fill="#FAF5FF" stroke="#DDD6FE"/>
+  <text x="679" y="158" font-size="13" font-weight="700" fill="#6D28D9">Yii2</text>
+  <text x="679" y="176" font-size="10" fill="#6B7280">JwtService 组件</text>
+  <text x="679" y="193" font-size="10" fill="#6B7280">JwtAuth 过滤器</text>
+  <text x="679" y="210" font-size="10" fill="#6B7280">JwtIdentity 身份</text>
+
+  <rect x="792" y="136" width="115" height="84" rx="10" fill="#FAF5FF" stroke="#DDD6FE"/>
+  <text x="802" y="158" font-size="13" font-weight="700" fill="#6D28D9">Yii3</text>
+  <text x="802" y="176" font-size="10" fill="#6B7280">PSR-15 中间件</text>
+  <text x="802" y="193" font-size="10" fill="#6B7280">config-plugin</text>
+  <text x="802" y="210" font-size="10" fill="#6B7280">InstallCommand</text>
+
+  <path d="M112 234 V256" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#ar)"/>
+  <path d="M235 234 V256" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#ar)"/>
+  <path d="M358 234 V256" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#ar)"/>
+  <path d="M481 234 V256" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#ar)"/>
+  <path d="M604 234 V256" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#ar)"/>
+  <path d="M727 234 V256" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#ar)"/>
+  <path d="M850 234 V256" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#ar)"/>
 
   <!-- ══════════ 核心层 ══════════ -->
   <rect x="40" y="262" width="880" height="176" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
@@ -76,7 +90,7 @@
   <text x="508" y="350" font-size="11" fill="#475569">create · verify · validate</text>
   <text x="508" y="368" font-size="11" fill="#475569">decode · refresh · blacklist</text>
   <text x="508" y="386" font-size="11" fill="#475569">自动获取 Bearer Token</text>
-  <text x="508" y="404" font-size="11" fill="#475569">四框架一致的使用体验</text>
+  <text x="508" y="404" font-size="11" fill="#475569">六框架一致的使用体验</text>
 
   <rect x="713" y="300" width="207" height="122" rx="10" fill="#EFF6FF" stroke="#BFDBFE"/>
   <text x="727" y="328" font-size="14" font-weight="700" fill="#1D4ED8">支撑组件 Support</text>

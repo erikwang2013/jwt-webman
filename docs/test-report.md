@@ -1,16 +1,16 @@
 # JWT Webman 插件单元测试报告
 
-- 日期：2026-09-25
-- 运行环境：PHP 8.3.7 / PHPUnit 9.6.35
+- 日期：2026-09-29
+- 运行环境：PHP 8.5.6 / PHPUnit 9.6.35
 - 运行命令：`vendor/bin/phpunit`
 
 ## 测试统计
 
 | 指标 | 数值 |
 |------|------|
-| 测试总数 | 229 |
-| 断言总数 | 433 |
-| 通过 | 220 |
+| 测试总数 | 270 |
+| 断言总数 | 518 |
+| 通过 | 261 |
 | 跳过 | 9（全部为 Memcached 扩展缺失） |
 | 失败 | 0 |
 | 错误 | 0 |
@@ -38,10 +38,46 @@
 - [x] Webman — 中间件(except 放行/无 token/有效/无效/黑名单)
 - [x] ThinkPHP — Facade/JWTService(redis、database 存储)/中间件/InstallCommand(受保护方法经反射调用)
 - [x] Hyperf — ConfigProvider(依赖、命令注册、发布、属性)/中间件/JWTAspect/InstallCommand
+- [x] Yii2 — JwtService(回退 params、注入 config 优先、密钥缺失报错、刷新轮换与拉黑、黑名单)/JwtIdentity(sub/uid/id 取值、jti 作 authKey、空 authKey 拒绝、findIdentity 无状态)/JwtAuth(无令牌、畸形、过期、刷新令牌当访问令牌、黑名单、有效令牌 payload 随身份对象返回并登录 user、Request 拒绝动态属性、WWW-Authenticate、optional 放行/非 optional 拒绝/optional 仍解析、组件类型错误)/InstallController(发布配置、已存在不覆盖、无 .env 回落打印)
+- [x] Yii3 — PSR-15 中间件(except 放行、带/不带前导斜杠匹配、未命中仍需令牌、无令牌、无效、过期、刷新令牌当访问令牌、黑名单、有效令牌写入 `jwt_payload` 属性、原请求不被改写、非法 except 正则不影响请求)/InstallCommand(命令名取自 `#[AsCommand]`、写 .env、覆盖既有密钥不追加、无 .env 回落打印、params-console 注册映射)
 - [x] `Install.php` — 常量/拷贝配置/幂等/卸载/未安装卸载不抛错
 
 ### 测试基础设施
-- `tests/FrameworkStubs.php`（入口）拆分为 `tests/stubs/` 下 6 个文件（PSR/全局/Laravel/ThinkPHP/Webman/Hyperf），均 ≤500 行；所有类/接口/函数带 class_exists/function_exists 守卫，真实包存在时自动跳过桩定义
+- `tests/FrameworkStubs.php`（入口）拆分为 `tests/stubs/` 下 8 个文件（PSR/全局/Laravel/ThinkPHP/Webman/Hyperf/Yii2/Yii3），均 ≤500 行；所有类/接口/函数带 class_exists/function_exists 守卫，真实包存在时自动跳过桩定义
+- Yii2 桩按真实源码复刻 `AuthMethod::beforeAction` 的流程（捕获 `UnauthorizedHttpException` → optional 放行 → 否则 challenge + handleFailure），因此 `optional` / 401 两条分支走的是真实语义而非简化替身
+
+## 本轮变更：Yii2 / Yii3 适配（新增 41 个用例）
+
+| 文件 | 行数 | 职责 |
+|------|------|------|
+| `Yii2/JwtService.php` | 118 | `yii\base\Component`，懒加载内核；按 `storage.type` 才取 `db`/`redis`/`memcached` 组件 |
+| `Yii2/JwtAuth.php` | 125 | `yii\filters\auth\AuthMethod` 子类，挂 `behaviors()` 即可保护控制器 |
+| `Yii2/JwtIdentity.php` | 67 | `yii\web\IdentityInterface`，让 `Yii::$app->user` 照常可用 |
+| `Yii2/InstallController.php` | 59 | `php yii jwt/install` |
+| `Yii2/config/jwt.php` | 57 | `getenv()` 版配置模板（无 `middleware` 段） |
+| `Yii3/Middleware.php` | 92 | PSR-15 中间件，`except` 复用 `MiddlewareSupport` |
+| `Yii3/InstallCommand.php` | 65 | `./yii jwt:install`（Symfony Console） |
+| `Yii3/config/{params,di,params-console}.php` | 155 | config-plugin 三组，装包即生效 |
+
+API 均按 `yiisoft/yii2` 与 `yiisoft/yii-console` 真实源码核对后实现，未凭记忆书写。关键依据：
+
+- Yii2 `AuthMethod::beforeAction` **不调用** `login()`（登录发生在 `authenticate()` 内部，见 `HttpHeaderAuth`）；且它会捕获 `UnauthorizedHttpException`，因此"令牌缺失也直接抛异常"不会破坏 `optional` 语义
+- `JwtAuth` 的登录写法照抄 Yii2 自带的 `HttpBasicAuth`：`if ($user->getIdentity(false) !== $identity) { $user->login($identity); }`
+- Yii3 的 `config-plugin` 组名（`params` / `common` / `params-console`）取自 `yiisoft/config` 与 `yiisoft/yii-console` 的实际约定
+
+### 本轮自查发现并修复
+
+1. **Yii2 适配层给 `$request` 挂动态属性会导致每个请求 500（高危，已修复）**
+
+   `yii\base\Request` 继承自 `yii\base\Component`，而 `Component::__set()` 对未声明属性**直接抛 `UnknownPropertyException`**（不是 PHP 8.2 那种动态属性弃用警告）。原实现照搬其余五个适配器的 `$request->jwt_payload = $payload;`，在真实 Yii2 下会让每一次认证成功的请求抛异常。
+
+   现改为 payload 只挂在身份对象上（`Yii::$app->user->identity->payload`）——`JwtIdentity::$payload` 是声明过的公开属性，本就承载这个数据，也更贴合 Yii2 习惯。
+
+2. **测试桩掩盖了上述缺陷（已修复）**
+
+   原 `tests/stubs/YiiStubs.php` 给 `BaseObject`/`Component`/`Request` 加了 `#[\AllowDynamicProperties]`、且没有实现 `__get`/`__set`，与真实 Yii2 语义相反，导致动态属性赋值在桩里静默通过。现已按真实源码复刻：`BaseObject`/`Component` 提供会抛 `UnknownPropertyException` / `InvalidCallException` 的魔术方法，`Request` / `Response` / `User` 改为继承 `Component`。
+
+   并新增钉子用例 `testRequestRejectsDynamicProperties`，把"不许往 Request 挂属性"这条约束锁死；已验证把 `$request->jwt_payload = $payload;` 加回去会立刻以 `Setting unknown property: yii\web\Request::jwt_payload` 失败。
 
 ## 修复的问题
 
@@ -83,3 +119,8 @@
 - 过期令牌的 `isBlacklisted()` 返回 false（报告"已过期"而非"已拉黑"），`testIsBlacklistedExpiredBlacklistedTokenReturnsFalse` 固化该行为
 - `Native\Guard::requireAuth()` 的失败分支会结束进程，单元测试只覆盖成功分支与 `Guard::respond()` 的输出，未做进程级退出测试；`examples/usage.php` 覆盖了 `authenticate()/check()` 的正常路径
 - `Native\Guard` 的请求头提取在 CLI 下无法覆盖 `getallheaders()` 路径（CLI SAPI 不提供该函数），该分支依赖真实 Web SAPI
+- Yii2 的 401 是**抛 `yii\web\UnauthorizedHttpException`**、交给 Yii 错误处理器渲染，而其余五个适配器自行拼装 `{code,msg,data}` JSON。这是刻意的框架惯用写法差异，已在 README 中标注
+- Yii2 的 `except` / `only` / `optional` 由框架 `ActionFilter` 提供，非本包代码，故桩与测试只覆盖 `beforeAction` 的 optional / 401 分支与 `authenticate()` 本身
+- Yii3 的 `storage.connection` 需由应用显式指定容器服务 id（本包不硬编码 `yiisoft/db`、`yiisoft/redis` 的接口名，避免跟随其版本漂移）；未配置时工厂抛带说明的 STORAGE_ERROR，该分支未写用例（需真实容器）
+- `docs/review-report-20260802.md` 为 2026-08-02 的历史审查记录，未随本轮改动更新
+- 插图中 `docs/pet.svg` 已重绘为六齿（刃身相应加长 32px，脚与投影随之下移，viewBox 240×310）；`docs/architecture.svg` 接入层已扩为 7 个方块

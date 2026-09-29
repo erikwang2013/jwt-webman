@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="240" height="280" viewBox="0 0 240 280" role="img" aria-labelledby="keeTitle keeDesc" shape-rendering="geometricPrecision">
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="310" viewBox="0 0 240 310" role="img" aria-labelledby="keeTitle keeDesc" shape-rendering="geometricPrecision">
   <title id="keeTitle">钥匙小卫 Kee — erikwang2013/jwt-webman 项目宠物</title>
-  <desc id="keeDesc">一把会眨眼微笑的金色钥匙，胸口佩戴蓝色盾牌，钥匙刃上的四颗齿代表 webman、Laravel、ThinkPHP、Hyperf 四个框架适配层。</desc>
+  <desc id="keeDesc">一把会眨眼微笑的金色钥匙，胸口佩戴蓝色盾牌，钥匙刃上的六颗齿代表 webman、Laravel、ThinkPHP、Hyperf、Yii2、Yii3 六个框架适配层。</desc>
   <defs>
     <linearGradient id="keeGold" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#FDE68A"/>
@@ -14,14 +14,14 @@
   </defs>
 
   <!-- 地面投影 -->
-  <ellipse cx="120" cy="252" rx="58" ry="9" fill="#0F172A" opacity=".10"/>
+  <ellipse cx="120" cy="284" rx="58" ry="9" fill="#0F172A" opacity=".10"/>
 
   <g>
     <animateTransform attributeName="transform" type="translate" values="0 0;0 -6;0 0" keyTimes="0;.5;1" dur="3.4s" repeatCount="indefinite"/>
 
     <!-- 脚 -->
-    <ellipse cx="108" cy="243" rx="12" ry="8" fill="#1E293B"/>
-    <ellipse cx="132" cy="243" rx="12" ry="8" fill="#1E293B"/>
+    <ellipse cx="108" cy="275" rx="12" ry="8" fill="#1E293B"/>
+    <ellipse cx="132" cy="275" rx="12" ry="8" fill="#1E293B"/>
 
     <!-- 右臂（挥手，置于身体之后） -->
     <g>
@@ -36,8 +36,8 @@
     <path d="M98 170 C84 174 76 184 76 196" fill="none" stroke="#F59E0B" stroke-width="11" stroke-linecap="round"/>
     <circle cx="76" cy="198" r="11" fill="#FBBF24" stroke="#1E293B" stroke-width="5"/>
 
-    <!-- 身体 = 钥匙刃，右侧四颗齿 = 四个框架适配层 -->
-    <path d="M96 110 H144 V150 h16 a5 5 0 0 1 0 10 h-16 V166 h16 a5 5 0 0 1 0 10 h-16 V182 h16 a5 5 0 0 1 0 10 h-16 V198 h16 a5 5 0 0 1 0 10 h-16 V216 a20 20 0 0 1 -20 20 H116 a20 20 0 0 1 -20 -20 Z"
+    <!-- 身体 = 钥匙刃，右侧六颗齿 = 六个框架适配层 -->
+    <path d="M96 110 H144 V150 h16 a5 5 0 0 1 0 10 h-16 V166 h16 a5 5 0 0 1 0 10 h-16 V182 h16 a5 5 0 0 1 0 10 h-16 V198 h16 a5 5 0 0 1 0 10 h-16 V214 h16 a5 5 0 0 1 0 10 h-16 V230 h16 a5 5 0 0 1 0 10 h-16 V248 a20 20 0 0 1 -20 20 H116 a20 20 0 0 1 -20 -20 Z"
           fill="url(#keeGold)" stroke="#1E293B" stroke-width="5" stroke-linejoin="round"/>
 
     <!-- 盾牌（校验与黑名单） -->

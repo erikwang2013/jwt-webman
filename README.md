@@ -1,11 +1,11 @@
 # erikwang2013/jwt-webman
 
-一款兼容 webman、Laravel、ThinkPHP、Hyperf 的 JWT 认证插件，也能直接在原生 PHP（无框架）项目中使用。一套框架无关内核 + 五种接入方式 + 四种可插拔黑名单存储，适用于分布式部署，安装简单快捷。
+一款兼容 webman、Laravel、ThinkPHP、Hyperf、Yii2、Yii3 的 JWT 认证插件，也能直接在原生 PHP（无框架）项目中使用。一套框架无关内核 + 七种接入方式 + 四种可插拔黑名单存储，适用于分布式部署，安装简单快捷。
 
 <div align="center">
   <img src="./docs/pet.svg" width="150" alt="项目宠物：钥匙小卫 Kee" />
   <br />
-  <sub>项目宠物 · <b>钥匙小卫 Kee</b> —— 钥匙柄是框架无关内核，刃上四颗齿是四个框架适配层，胸前盾牌是校验与黑名单</sub>
+  <sub>项目宠物 · <b>钥匙小卫 Kee</b> —— 钥匙柄是框架无关内核，刃上六颗齿是六个框架适配层，胸前盾牌是校验与黑名单</sub>
 </div>
 
 作者：[艾瑞可erik](https://erik.xyz)
@@ -18,7 +18,7 @@
 
 传统的 JWT 插件通常只绑定单一框架，在微服务或多项目架构中，不同框架之间需要各自对接不同的 JWT 实现，造成维护成本和认证逻辑不一致的风险。
 
-本插件将核心逻辑与框架完全解耦，通过「一套核心 + 接入层」的架构，在原生 PHP 与 webman、Laravel、ThinkPHP、Hyperf 中提供一致的 API 体验。无论后端服务使用哪个框架，JWT 的编码、解码、刷新、黑名单逻辑完全一致，只需按照各框架的习惯方式进行配置和注入即可；不带框架的项目可以直接使用内核与 `Native\Guard` 请求守卫。
+本插件将核心逻辑与框架完全解耦，通过「一套核心 + 接入层」的架构，在原生 PHP 与 webman、Laravel、ThinkPHP、Hyperf、Yii2、Yii3 中提供一致的 API 体验。无论后端服务使用哪个框架，JWT 的编码、解码、刷新、黑名单逻辑完全一致，只需按照各框架的习惯方式进行配置和注入即可；不带框架的项目可以直接使用内核与 `Native\Guard` 请求守卫。
 
 ### 架构
 
@@ -32,7 +32,7 @@
 
 - **框架无关核心**：核心代码零框架依赖，可在任何 PHP 8.0+ 项目中使用
 - **原生深度集成**：每个框架适配层遵循各自的插件规范和惯用写法，而非生硬地统一封装
-- **统一配置格式**：五种接入方式共用一套配置结构，仅环境变量读取方式略有不同（原生 PHP 用 `getenv()`）
+- **统一配置格式**：七种接入方式共用一套配置结构，仅环境变量读取方式略有不同（原生 PHP / Yii2 / Yii3 用 `getenv()`）
 - **存储驱动可插拔**：黑名单支持 file / redis / database / memcached 四种后端，通过配置切换
 - **渐进式接入**：可从最简单的 file 存储起步，业务增长后无缝切换到 redis 或 database
 
@@ -40,7 +40,7 @@
 
 ```
 jwt-webman/
-├── src/erik-jwt/                    核心与五种接入方式（约 2400 行）
+├── src/erik-jwt/                    核心与七种接入方式（约 3500 行）
 │   ├── JWT.php                      核心：令牌编解码、刷新、黑名单、清理
 │   ├── JwtWrapper.php               核心：便捷封装，自动获取 Bearer Token
 │   ├── JWTFactory.php               核心：工厂，按配置/配置文件组装内核与存储
@@ -60,9 +60,11 @@ jwt-webman/
 │   ├── Laravel/                     接入层：ServiceProvider · Facade · Middleware · InstallCommand
 │   ├── ThinkPHP/                    接入层：Service · Facade · Middleware · InstallCommand
 │   ├── Hyperf/                      接入层：ConfigProvider · Middleware · AOP Aspect · InstallCommand
+│   ├── Yii2/                        接入层：Component · AuthMethod 过滤器 · Identity · InstallController
+│   ├── Yii3/                        接入层：PSR-15 Middleware · InstallCommand · config-plugin 配置
 │   └── config/                      随包分发的各框架默认配置
-├── tests/                           225 个用例：核心、五种接入、存储驱动、签名安全
-│   └── stubs/                       四框架最小化替身，无需安装框架即可跑测试
+├── tests/                           269 个用例：核心、七种接入、存储驱动、签名安全
+│   └── stubs/                       六框架最小化替身，无需安装框架即可跑测试
 ├── docs/                            文档与图形资源
 │   ├── pet.svg                      项目宠物「钥匙小卫 Kee」
 │   ├── architecture.svg             架构设计图
@@ -81,7 +83,7 @@ jwt-webman/
 
 | 层 | 职责 | 约束 |
 |------|------|------|
-| **接入层** | 原生 PHP 用 `Native\Guard` 守卫请求；四框架从各自容器取配置与连接，组装核心实例 | 五种接入方式互不感知，核心不反向依赖任何一方 |
+| **接入层** | 原生 PHP 用 `Native\Guard` 守卫请求；六框架从各自容器取配置与连接，组装核心实例 | 七种接入方式互不感知，核心不反向依赖任何一方 |
 | **框架无关内核** | 令牌编解码、刷新、黑名单、异常分级 | 零框架 helper，仅依赖 `firebase/php-jwt` 与 PSR-3 |
 | **可插拔存储层** | 黑名单读写、过期回收、故障策略 | 只认 `TokenStorageInterface`；驱动与 `fail_open` 由配置决定 |
 | **底层依赖** | JWT 编解码引擎与日志 | 日志未注入时用 `NullLogger` 静默降级 |
@@ -104,7 +106,7 @@ jwt-webman/
 - 令牌黑名单（支持 redis、database、memcached、file 四种存储驱动）
 - 存储操作失败自动重试，故障时可配置放行或拒绝
 - 原生 PHP 直接可用：`Guard` 请求守卫 + 配置文件加载，零框架依赖
-- 四框架深度集成：中间件、门面模式、安装命令
+- 六框架深度集成：中间件、门面模式、安装命令
 
 ## 安装
 
@@ -181,7 +183,7 @@ use Erikwang2013\Jwt\Native\Guard;
 
 $guard = Guard::fromFile(__DIR__ . '/config/jwt.php');
 
-// 校验失败时输出与四框架中间件完全一致的 401 JSON 并结束请求
+// 校验失败时输出与 webman / Laravel / ThinkPHP / Hyperf / Yii3 一致的 401 JSON 并结束请求
 $payload = $guard->requireAuth();
 $userId  = $payload['user_id'];
 ```
@@ -456,6 +458,142 @@ class UserController {
 
 ---
 
+### Yii2
+
+**1. 注册组件**（`config/web.php`）：
+
+```php
+'components' => [
+    'jwt' => [
+        'class'  => \Erikwang2013\Jwt\Yii2\JwtService::class,
+        // 不填 config 则回退到 Yii::$app->params['jwt']
+        'config' => require __DIR__ . '/jwt.php',
+    ],
+    // 令牌是无状态的：关掉会话，否则每个 JWT 请求都会起一次 session
+    'user' => [
+        'identityClass'   => 'app\models\User',
+        'enableSession'   => false,
+        'enableAutoLogin' => false,
+    ],
+],
+```
+
+**签发与校验：**
+
+```php
+$token   = Yii::$app->jwt->encode(['sub' => $userId, 'role' => 'admin']);
+$payload = Yii::$app->jwt->decode($token);
+$ok      = Yii::$app->jwt->validate($token);
+```
+
+**保护控制器**（`behaviors()`）：
+
+```php
+public function behaviors()
+{
+    $behaviors = parent::behaviors();
+    $behaviors['jwt'] = [
+        'class'    => \Erikwang2013\Jwt\Yii2\JwtAuth::class,
+        'except'   => ['login'],    // ActionFilter 原生属性：按 action id 排除
+        'optional' => ['profile'],  // AuthMethod 原生属性：公开动作，带令牌时仍然解析
+    ];
+    return $behaviors;
+}
+```
+
+认证通过后 `Yii::$app->user->identity` / `isGuest` / `id` 照常可用，payload 就在身份对象上：
+
+```php
+$payload = Yii::$app->user->identity->payload;   // 完整 JWT payload
+$userId  = Yii::$app->user->id;                  // getId() 依次取 sub / uid / id 声明
+$role    = Yii::$app->user->identity->payload['role'];
+```
+
+> **不要往 `$request` 上挂自定义属性**（例如 `Yii::$app->request->jwt_payload`）。`yii\base\Request` 继承自 `yii\base\Component`，而 `Component::__set()` 对未声明属性**直接抛 `UnknownPropertyException`**——不是发个弃用警告了事，每个认证成功的请求都会 500。这也是 Yii2 适配层不采用其他五个适配器 `$request->jwt_payload` 写法的原因；身份对象本身就是 Yii2 存放用户数据的地方。
+
+> **401 的形态与另外五个适配器不同**：Yii2 适配层抛 `yii\web\UnauthorizedHttpException`，交给 Yii 错误处理器渲染，响应体格式跟随 `response->format`（REST 应用设成 `Response::FORMAT_JSON` 即为 JSON）。这是 Yii2 的原生做法，也让 `except` / `optional` 无需额外代码即可生效。
+>
+> 访问控制用 Yii2 原生的 `except` / `only` / `optional`（按 action id 匹配），不使用其他适配器那套路径正则 `middleware.except`，所以 `Yii2/config/jwt.php` 里没有 `middleware` 段。
+
+**安装：** Yii2 的 `controllerNamespace` 不含本包，需在 `config/console.php` 里显式映射：
+
+```php
+'controllerMap' => [
+    'jwt' => \Erikwang2013\Jwt\Yii2\InstallController::class,
+],
+```
+
+```sh
+php yii jwt/install
+```
+
+**配置文件：** `config/jwt.php`（模板见 `src/erik-jwt/Yii2/config/jwt.php`），用 `getenv()` 读环境变量。
+
+---
+
+### Yii3
+
+`composer require` 后由 [config-plugin](https://github.com/yiisoft/config) 自动并入配置（`params` / `common` / `params-console` 三组），无需手动注册任何 Provider。
+
+**中间件：** 把 `Middleware::class` 加进路由或应用中间件链：
+
+```php
+use Erikwang2013\Jwt\Yii3\Middleware;
+use Yiisoft\Http\Method;
+use Yiisoft\Router\Route;
+
+Route::methods([Method::GET], '/api/profile', ProfileAction::class)
+    ->withMiddleware(Middleware::class);
+```
+
+走中间件的路由用请求属性读 payload：
+
+```php
+$payload = $request->getAttribute('jwt_payload');
+```
+
+**依赖注入：** 容器里直接取 `Erikwang2013\Jwt\JWT`：
+
+```php
+use Erikwang2013\Jwt\JWT;
+
+final class TokenAction
+{
+    public function __construct(private JWT $jwt)
+    {
+    }
+
+    public function __invoke(): array
+    {
+        return ['token' => $this->jwt->encode(['sub' => 1])];
+    }
+}
+```
+
+**安装：**
+
+```sh
+./yii jwt:install
+```
+
+**配置：** 应用在 `config/params.php` 里覆盖 `jwt` 键即可。redis / database 驱动需要额外指定容器中的连接服务 id：
+
+```php
+return [
+    'jwt' => [
+        'storage' => [
+            'type'       => 'redis',
+            // 应用侧显式给出连接对象的服务 id
+            'connection' => \Yiisoft\Redis\RedisInterface::class,
+        ],
+    ],
+];
+```
+
+> 本包不硬编码 `yiisoft/db`、`yiisoft/redis` 的接口名与方法签名，`storage.connection` 由应用显式给出，避免跟随这些包的版本漂移；未配置时工厂会抛出带说明的存储配置错误。
+
+---
+
 ## 配置文件参考
 
 ```php
@@ -534,7 +672,7 @@ return [
 
 ### 刷新令牌不能当访问令牌用
 
-`decode()` / `validate()`（以及四个框架的中间件、`Native\Guard`）**默认拒绝 `token_type` 为 `refresh` 的令牌**。刷新令牌有效期更长，且刷新时才会轮换，若允许它直接访问受保护接口，一次泄露就等于长期通行证、登出也不会立即失效。
+`decode()` / `validate()`（以及六个框架的中间件、`Native\Guard`）**默认拒绝 `token_type` 为 `refresh` 的令牌**。刷新令牌有效期更长，且刷新时才会轮换，若允许它直接访问受保护接口，一次泄露就等于长期通行证、登出也不会立即失效。
 
 确实需要读取刷新令牌（例如自定义刷新逻辑）时显式放开：
 
@@ -591,20 +729,22 @@ public function cleanup(): void { $this->jwt->cleanup(); }
 **钥匙小卫 Kee** 是本项目的吉祥物，造型就是这套架构本身：
 
 - **钥匙柄**（圆头带表情）—— 框架无关内核：认得所有令牌，不认框架
-- **刃上四颗齿** —— webman / Laravel / ThinkPHP / Hyperf 四个适配层，形状一致、位置固定
-- **没有第五颗齿** —— 原生 PHP 项目直接使用内核，不需要适配层
+- **刃上六颗齿** —— webman / Laravel / ThinkPHP / Hyperf / Yii2 / Yii3 六个适配层，形状一致、位置固定
+- **没有第七颗齿** —— 原生 PHP 项目直接使用内核，不需要适配层
 - **胸前盾牌** —— 校验与黑名单：验签通过才会亮起
 
 形象文件 `docs/pet.svg` 是纯矢量、无脚本、无外部依赖的单个文件，动画使用 SMIL 实现，可直接嵌入任何页面或文档。
 
 ### 在代码里使用
 
-四个框架的安装命令都会打印它的终端形象：
+各框架的安装命令都会打印它的终端形象：
 
 ```sh
 php artisan jwt:install            # Laravel
 php think jwt:install              # ThinkPHP
 php bin/hyperf.php jwt:install     # Hyperf
+php yii jwt/install                # Yii2
+./yii jwt:install                  # Yii3
 # webman：composer require 时由插件安装入口 Install::install() 打印
 ```
 

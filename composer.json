@@ -1,6 +1,6 @@
 {
     "name": "erikwang2013/jwt-webman",
-    "description": "A framework-agnostic JWT plugin for plain PHP and webman, Laravel, ThinkPHP, Hyperf: one core, a request guard or four native adapters, pluggable blacklist storage (redis / database / file / memcached).",
+    "description": "A framework-agnostic JWT plugin for plain PHP and webman, Laravel, ThinkPHP, Hyperf, Yii2, Yii3: one core, a request guard or six native adapters, pluggable blacklist storage (redis / database / file / memcached).",
     "keywords": [
         "erik",
         "erikwang2013",
@@ -11,7 +11,9 @@
         "webman",
         "laravel",
         "thinkphp",
-        "hyperf"
+        "hyperf",
+        "yii2",
+        "yii3"
     ],
     "type": "library",
     "license": "MIT",
@@ -39,12 +41,23 @@
         "workerman/webman": "For webman framework integration",
         "laravel/framework": "For Laravel framework integration",
         "topthink/framework": "For ThinkPHP framework integration",
-        "hyperf/framework": "For Hyperf framework integration"
+        "hyperf/framework": "For Hyperf framework integration",
+        "yiisoft/yii2": "For Yii2 framework integration",
+        "psr/http-server-middleware": "Required by the Yii3 PSR-15 middleware",
+        "yiisoft/yii-console": "For the Yii3 jwt:install console command"
     },
     "extra": {
         "laravel": {
             "providers": ["Erikwang2013\\Jwt\\Laravel\\JWTServiceProvider"],
             "aliases": {"JWT": "Erikwang2013\\Jwt\\Laravel\\Facade"}
+        },
+        "config-plugin-options": {
+            "source-directory": "src/erik-jwt/Yii3/config"
+        },
+        "config-plugin": {
+            "params": "params.php",
+            "common": "di.php",
+            "params-console": "params-console.php"
         }
     },
     "autoload": {

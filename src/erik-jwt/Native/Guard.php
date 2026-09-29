@@ -18,7 +18,8 @@ use Erikwang2013\Jwt\JWTFactory;
 /**
  * 原生 PHP（无框架）请求守卫。
  *
- * 给不带任何框架的入口脚本用，401 响应体与四个框架中间件完全一致：
+ * 给不带任何框架的入口脚本用，401 响应体与 webman / Laravel / ThinkPHP /
+ * Hyperf / Yii3 五个适配层完全一致（Yii2 抛 UnauthorizedHttpException，见 README）：
  *
  *     $guard   = new Guard(JWTFactory::createFromFile(__DIR__ . '/config/jwt.php'));
  *     $payload = $guard->requireAuth();   // 校验失败直接 401 并结束
@@ -88,7 +89,7 @@ class Guard
     }
 
     /**
-     * 输出与四个框架中间件一致的 401 响应。已在输出缓冲中则只返回响应体。
+     * 输出与各框架适配层一致的 401 响应。已在输出缓冲中则只返回响应体。
      */
     public static function respond(JWTException $e): void
     {
