@@ -2,11 +2,9 @@
 
 一款兼容 webman、Laravel、ThinkPHP、Hyperf、Yii2、Yii3 的 JWT 认证插件，也能直接在原生 PHP（无框架）项目中使用。一套框架无关内核 + 七种接入方式 + 四种可插拔黑名单存储，适用于分布式部署，安装简单快捷。
 
-<div align="center">
-  <img src="./docs/pet.svg" width="150" alt="项目宠物：钥匙小卫 Kee" />
-  <br />
-  <sub>项目宠物 · <b>钥匙小卫 Kee</b> —— 一只挂着钥匙吊牌的柴犬门卫：吊牌是框架无关内核，六颗齿是六个框架适配层，钥匙柄上的盾牌是校验与黑名单</sub>
-</div>
+![项目宠物：钥匙小卫 Kee](./docs/pet.svg)
+
+**项目宠物 · 钥匙小卫 Kee** —— 一只扁平卡通的柴犬门卫：钥匙吊牌是框架无关内核，项圈上的六颗圆钉是六个框架适配层，钥匙柄上的盾牌是校验与黑名单
 
 作者：[艾瑞可erik](https://erik.xyz)
 
@@ -24,7 +22,7 @@
 
 整体分为「接入层 → 框架无关内核 → 可插拔存储层」四层，依赖单向向下，任何一层都能独立替换：
 
-<img src="./docs/architecture.svg" alt="架构设计图：框架适配层 / 核心层 / 存储层 / 底层依赖" width="960" />
+![架构设计图：框架适配层 / 核心层 / 存储层 / 底层依赖](./docs/architecture.svg)
 
 核心层不依赖任何框架 helper，所有外部依赖（配置、日志、数据库连接、Redis 连接）通过构造函数或工厂方法注入。每个框架的适配层负责从框架容器中获取这些依赖，组装后传入核心工厂。逐文件的目录说明见 [项目结构](#项目结构)。
 
@@ -79,7 +77,7 @@ jwt-webman/
 
 ## 架构设计
 
-<img src="./docs/architecture.svg" alt="架构设计图：四层结构" width="960" />
+![架构设计图：四层结构](./docs/architecture.svg)
 
 | 层 | 职责 | 约束 |
 |------|------|------|
@@ -90,11 +88,11 @@ jwt-webman/
 
 ## 功能设计
 
-<img src="./docs/features.svg" alt="功能设计图：六大功能域" width="960" />
+![功能设计图：六大功能域](./docs/features.svg)
 
 ## 令牌生命周期
 
-<img src="./docs/lifecycle.svg" alt="令牌生命周期图：七个阶段与状态流转" width="960" />
+![令牌生命周期图：七个阶段与状态流转](./docs/lifecycle.svg)
 
 一枚令牌从签发到销毁共七个阶段：**签发 → 下发 → 校验 → 放行 / 拒绝 → 刷新 → 拉黑 → 过期与清理**。其中第 3、4 步由中间件（原生 PHP 下是 `Native\Guard`）自动完成，其余步骤由业务代码按需调用。刷新采用轮换策略——旧 `jti` 在换发新令牌的同时进入黑名单，因此同一枚刷新令牌不会被重复使用；新令牌的有效期默认取 `refresh_expire`。
 
@@ -724,16 +722,15 @@ public function cleanup(): void { $this->jwt->cleanup(); }
 
 ## 项目宠物
 
-<img src="./docs/pet.svg" width="180" align="right" alt="钥匙小卫 Kee" />
+![钥匙小卫 Kee](./docs/pet.svg)
 
-**钥匙小卫 Kee** 是本项目的吉祥物——一只坐在门口、挂着钥匙吊牌的柴犬门卫。它不把架构长在身上，而是把架构戴在身上：
+**钥匙小卫 Kee** 是本项目的吉祥物——一只扁平卡通风格的柴犬门卫，坐在门口，脖子上挂着一把钥匙吊牌。它不把架构长在身上，而是把架构戴在身上：
 
 - **柴犬本体** —— 项目本身：安静坐在门口，替每个请求验明正身
-- **项圈上的金色钥匙吊牌** —— 框架无关内核与 JWT 令牌：不管来的是哪个框架，认的都是同一把钥匙
-- **吊牌刃上的六颗齿** —— webman / Laravel / ThinkPHP / Hyperf / Yii2 / Yii3 六个适配层，形状一致、位置固定
-- **没有第七颗齿** —— 原生 PHP 项目直接使用内核，不需要适配层
-- **钥匙柄上的蓝色盾牌** —— 校验与黑名单：验签通过才会亮起；盾面四颗小铆钉对应 file / redis / database / memcached 四种存储驱动
-- **抬起的左前爪** —— 守门动作：出示令牌，校验通过再放行
+- **项圈上的六颗金色圆钉** —— webman / Laravel / ThinkPHP / Hyperf / Yii2 / Yii3 六个适配层，形状一致、位置固定
+- **没有第七颗圆钉** —— 原生 PHP 项目直接使用内核，不需要适配层
+- **金色钥匙吊牌** —— 框架无关内核与 JWT 令牌：不管来的是哪个框架，认的都是同一把钥匙
+- **钥匙柄上的蓝色盾牌** —— 校验与黑名单：验签通过才会亮起
 
 形象文件 `docs/pet.svg` 是纯矢量、无脚本、无外部依赖的单个文件，动画使用 SMIL 实现，可直接嵌入任何页面或文档。12 种表情形态放在 `docs/pet-expressions/`，均为独立的纯矢量文件，并遵循 `prefers-reduced-motion`。
 
@@ -764,18 +761,25 @@ echo Mascot::svg();
 ```
 
 
-<!-- pet-expressions:start -->
 ## 项目宠物表情形态 · 钥匙小卫 Kee
 
-<table align="center">
-<tr><td align="center"><img src="docs/pet-expressions/smile.svg" width="88" alt="笑"><br><b>笑</b><br><code>:emoji-smile:</code></td><td align="center"><img src="docs/pet-expressions/joy.svg" width="88" alt="欢乐"><br><b>欢乐</b><br><code>:emoji-joy:</code></td><td align="center"><img src="docs/pet-expressions/cry.svg" width="88" alt="哭"><br><b>哭</b><br><code>:emoji-cry:</code></td><td align="center"><img src="docs/pet-expressions/depressed.svg" width="88" alt="沮丧"><br><b>沮丧</b><br><code>:emoji-depressed:</code></td><td align="center"><img src="docs/pet-expressions/terrified.svg" width="88" alt="惊恐"><br><b>惊恐</b><br><code>:emoji-terrified:</code></td><td align="center"><img src="docs/pet-expressions/angry.svg" width="88" alt="愤怒"><br><b>愤怒</b><br><code>:emoji-angry:</code></td></tr>
-<tr><td align="center"><img src="docs/pet-expressions/coquettish.svg" width="88" alt="撒娇"><br><b>撒娇</b><br><code>:emoji-coquettish:</code></td><td align="center"><img src="docs/pet-expressions/cute.svg" width="88" alt="卖萌"><br><b>卖萌</b><br><code>:emoji-cute:</code></td><td align="center"><img src="docs/pet-expressions/pleasing.svg" width="88" alt="讨好"><br><b>讨好</b><br><code>:emoji-pleasing:</code></td><td align="center"><img src="docs/pet-expressions/knocking.svg" width="88" alt="敲打"><br><b>敲打</b><br><code>:emoji-knocking:</code></td><td align="center"><img src="docs/pet-expressions/facepalm.svg" width="88" alt="捂脸"><br><b>捂脸</b><br><code>:emoji-facepalm:</code></td><td align="center"><img src="docs/pet-expressions/tongue.svg" width="88" alt="吐舌头"><br><b>吐舌头</b><br><code>:emoji-tongue:</code></td></tr>
-</table>
+| 表情 | 名称 | Shortcode |
+|:---:|:---:|:---:|
+| ![笑](docs/pet-expressions/smile.svg) | **笑** | `:emoji-smile:` |
+| ![欢乐](docs/pet-expressions/joy.svg) | **欢乐** | `:emoji-joy:` |
+| ![哭](docs/pet-expressions/cry.svg) | **哭** | `:emoji-cry:` |
+| ![沮丧](docs/pet-expressions/depressed.svg) | **沮丧** | `:emoji-depressed:` |
+| ![惊恐](docs/pet-expressions/terrified.svg) | **惊恐** | `:emoji-terrified:` |
+| ![愤怒](docs/pet-expressions/angry.svg) | **愤怒** | `:emoji-angry:` |
+| ![撒娇](docs/pet-expressions/coquettish.svg) | **撒娇** | `:emoji-coquettish:` |
+| ![卖萌](docs/pet-expressions/cute.svg) | **卖萌** | `:emoji-cute:` |
+| ![讨好](docs/pet-expressions/pleasing.svg) | **讨好** | `:emoji-pleasing:` |
+| ![敲打](docs/pet-expressions/knocking.svg) | **敲打** | `:emoji-knocking:` |
+| ![捂脸](docs/pet-expressions/facepalm.svg) | **捂脸** | `:emoji-facepalm:` |
+| ![吐舌头](docs/pet-expressions/tongue.svg) | **吐舌头** | `:emoji-tongue:` |
 
-> 12 种彩色动态形态（头像式半身构图）：笑 / 欢乐 / 哭 / 沮丧 / 惊恐 / 愤怒 / 撒娇 / 卖萌 / 讨好 / 敲打 / 捂脸 / 吐舌头。每个 SVG 自带表情、情绪特效与整体动效，并遵循 `prefers-reduced-motion`。
-<!-- pet-expressions:end -->
+> 12 种彩色动态形态（扁平卡通、头像式半身构图）：笑 / 欢乐 / 哭 / 沮丧 / 惊恐 / 愤怒 / 撒娇 / 卖萌 / 讨好 / 敲打 / 捂脸 / 吐舌头。每个 SVG 自带表情、情绪特效与整体动效，并遵循 `prefers-reduced-motion`。
 
-<!-- assets-license:start -->
 ## 视觉资产授权 / Visual Assets License
 
 本项目的项目宠物、图片、图标、表情（包括 `docs/pet-expressions/` 等目录下的
@@ -784,14 +788,13 @@ SVG / PNG）**不是开源资产**，版权归作者所有。未经书面许可�
 [ASSETS-LICENSE.md](ASSETS-LICENSE.md)。
 
 > 代码部分仍遵循仓库原有 `LICENSE`；第三方素材（如明确标注的 Go Gopher 等）仍遵循其原许可证。
-<!-- assets-license:end -->
 
 
 ## 开源不易，欢迎支持 | Open Source is Not Easy, Your Support is Welcome
 
 | 微信 WeChat | 支付宝 Alipay |
 |:---:|:---:|
-| <img src="./docs/weixinpay.png" width="130" height="130" alt="微信 WeChat"> | <img src="./docs/alipay.png" width="130" height="130" alt="支付宝 Alipay"> |
+| ![微信 WeChat](./docs/weixinpay.png) | ![支付宝 Alipay](./docs/alipay.png) |
 
 ---
 

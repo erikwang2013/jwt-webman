@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="spTitle spDesc" shape-rendering="geometricPrecision">
+  <title id="spTitle">erikwang2013/jwt-webman — PHP 多框架 JWT 认证插件</title>
+  <desc id="spDesc">Social Preview：一套内核、七种接入；右侧是扁平卡通柴犬门卫钥匙小卫 Kee。</desc>
+
+  <rect width="1280" height="640" fill="#FFF8EC"/>
+  <circle cx="960" cy="330" r="248" fill="#FBE3C4"/>
+
+  <g font-family="'Noto Sans CJK SC','Source Han Sans SC',sans-serif" fill="#2B3445">
+    <text x="88" y="180" font-size="28" font-weight="700" letter-spacing="1.2">erikwang2013/jwt-webman</text>
+    <text x="84" y="292" font-size="92" font-weight="700">一套内核</text>
+    <text x="84" y="392" font-size="92" font-weight="700" fill="#E8892B">七种接入</text>
+    <text x="90" y="458" font-size="34" font-weight="500">PHP 多框架 JWT 认证插件</text>
+    <rect x="90" y="488" width="96" height="8" rx="4" fill="#F7C64A"/>
+    <text x="90" y="542" font-size="23" font-weight="400" fill="#6B7280">webman · Laravel · ThinkPHP · Hyperf</text>
+    <text x="90" y="577" font-size="23" font-weight="400" fill="#6B7280">Yii2 · Yii3 · 原生 PHP</text>
+    <text x="960" y="608" font-size="22" font-weight="400" fill="#6B7280" text-anchor="middle">项目宠物 · 钥匙小卫 Kee</text>
+  </g>
+
+
+  <!-- 由 docs/pet.svg 内联；更新宠物后请重新生成本文件 -->
+  <g transform="translate(785 88) scale(1.5)">
+  <title id="keeTitle">钥匙小卫 Kee — erikwang2013/jwt-webman 项目宠物</title>
+  <desc id="keeDesc">一只扁平卡通的柴犬门卫：项圈上六颗金色圆钉代表六个框架适配层，脖子下挂着金色钥匙吊牌，钥匙柄上嵌着蓝色盾牌。</desc>
+
+  <!-- 地面投影 -->
+  <ellipse cx="120" cy="292" rx="72" ry="9" fill="#2B3445" opacity=".08"/>
+
+  <g>
+
+    <!-- 尾巴 -->
+    <g>
+      <path d="M168 248 C198 254 212 234 204 214 C198 200 180 200 174 212" fill="none" stroke="#2B3445" stroke-width="24" stroke-linecap="round"/>
+      <path d="M168 248 C198 254 212 234 204 214 C198 200 180 200 174 212" fill="none" stroke="#F6A94A" stroke-width="14" stroke-linecap="round"/>
+      <path d="M174 212 C180 200 198 200 204 214" fill="none" stroke="#FFF6E6" stroke-width="4" stroke-linecap="round"/>
+    </g>
+
+    <!-- 身体 -->
+    <path d="M80 164 C66 194 62 232 66 254 C70 270 90 278 120 278 C150 278 170 270 174 254 C178 232 174 194 160 164 Z"
+          fill="#F6A94A" stroke="#2B3445" stroke-width="7" stroke-linejoin="round"/>
+
+    <!-- 奶油色肚皮 -->
+    <path d="M120 182 C104 182 96 200 96 226 C96 250 104 264 120 264 C136 264 144 250 144 226 C144 200 136 182 120 182 Z"
+          fill="#FFF6E6"/>
+
+    <!-- 后脚 -->
+    <ellipse cx="68" cy="274" rx="16" ry="9" fill="#FFF6E6" stroke="#2B3445" stroke-width="6"/>
+    <ellipse cx="172" cy="274" rx="16" ry="9" fill="#FFF6E6" stroke="#2B3445" stroke-width="6"/>
+
+    <!-- 前爪 -->
+    <ellipse cx="102" cy="271" rx="14" ry="9" fill="#FFF6E6" stroke="#2B3445" stroke-width="6"/>
+    <ellipse cx="138" cy="271" rx="14" ry="9" fill="#FFF6E6" stroke="#2B3445" stroke-width="6"/>
+
+    <!-- 项圈 -->
+    <path d="M80 158 C96 178 144 178 160 158 L163 174 C146 194 94 194 77 174 Z"
+          fill="#2F5D7C" stroke="#2B3445" stroke-width="7" stroke-linejoin="round"/>
+
+    <!-- 六颗金色圆钉 = 六个框架适配层 -->
+    <g fill="#F7C64A" stroke="#2B3445" stroke-width="1.6">
+      <circle cx="88" cy="169" r="3.2"/>
+      <circle cx="101" cy="174" r="3.2"/>
+      <circle cx="114" cy="177" r="3.2"/>
+      <circle cx="138" cy="177" r="3.2"/>
+      <circle cx="151" cy="174" r="3.2"/>
+      <circle cx="164" cy="169" r="3.2"/>
+    </g>
+
+    <!-- 钥匙吊牌：钥匙 = 内核 / JWT，蓝色盾牌 = 校验与黑名单 -->
+    <g>
+      <circle cx="126" cy="184" r="5.5" fill="none" stroke="#F7C64A" stroke-width="3.5"/>
+      <path d="M121 222 L121 254 Q121 260 126 260 Q131 260 131 254 L131 252 L139 252 L139 247 L131 247 L131 242 L139 242 L139 237 L131 237 L131 222 Z"
+            fill="#F7C64A" stroke="#2B3445" stroke-width="6" stroke-linejoin="round"/>
+      <circle cx="126" cy="206" r="18" fill="#F7C64A" stroke="#2B3445" stroke-width="6"/>
+      <path d="M126 196 L135 200 V205 C135 212 131 215 126 217 C121 215 117 212 117 205 V200 Z"
+            fill="#3B82F6" stroke="#2B3445" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M120 205 L124 209 L132 200" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <!-- 耳朵 -->
+    <path d="M78 76 L60 20 L108 52 Z" fill="#F6A94A" stroke="#2B3445" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M162 76 L180 20 L132 52 Z" fill="#F6A94A" stroke="#2B3445" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M80 66 L70 36 L98 55 Z" fill="#F7B9A3"/>
+    <path d="M160 66 L170 36 L142 55 Z" fill="#F7B9A3"/>
+
+    <!-- 头 -->
+    <path d="M120 52 C86 52 62 72 58 102 C54 132 72 158 98 166 C106 169 113 170 120 170 C127 170 134 169 142 166 C168 158 186 132 182 102 C178 72 154 52 120 52 Z"
+          fill="#F6A94A" stroke="#2B3445" stroke-width="7" stroke-linejoin="round"/>
+
+    <!-- 奶油色口鼻 -->
+    <path d="M120 116 C104 116 94 124 92 136 C90 148 100 158 112 161 C116 162 118 163 120 163 C122 163 124 162 128 161 C140 158 150 148 148 136 C146 124 136 116 120 116 Z"
+          fill="#FFF6E6"/>
+
+    <!-- 眉点 -->
+    <ellipse cx="98" cy="88" rx="8" ry="4" fill="#FFF6E6"/>
+    <ellipse cx="142" cy="88" rx="8" ry="4" fill="#FFF6E6"/>
+
+    <!-- 眼睛 -->
+    <ellipse cx="98" cy="108" rx="9" ry="11" fill="#2B3445">
+    </ellipse>
+    <ellipse cx="142" cy="108" rx="9" ry="11" fill="#2B3445">
+    </ellipse>
+    <circle cx="95" cy="103.5" r="3" fill="#FFFFFF"/>
+    <circle cx="139" cy="103.5" r="3" fill="#FFFFFF"/>
+
+    <!-- 鼻子与嘴 -->
+    <path d="M113 128 Q120 124 127 128 Q124 136 120 137 Q116 136 113 128 Z" fill="#2B3445"/>
+    <path d="M120 137 V141 M120 141 Q114 147 109 142 M120 141 Q126 147 131 142" fill="none" stroke="#2B3445" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- 腮红 -->
+    <circle cx="82" cy="134" r="8" fill="#F9A8B8"/>
+    <circle cx="158" cy="134" r="8" fill="#F9A8B8"/>
+  </g>
+
+  </g>
+
+</svg>
