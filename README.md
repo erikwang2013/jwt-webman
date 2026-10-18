@@ -5,7 +5,7 @@
 <div align="center">
   <img src="./docs/pet.svg" width="150" alt="项目宠物：钥匙小卫 Kee" />
   <br />
-  <sub>项目宠物 · <b>钥匙小卫 Kee</b> —— 钥匙柄是框架无关内核，刃上六颗齿是六个框架适配层，胸前盾牌是校验与黑名单</sub>
+  <sub>项目宠物 · <b>钥匙小卫 Kee</b> —— 一只挂着钥匙吊牌的柴犬门卫：吊牌是框架无关内核，六颗齿是六个框架适配层，钥匙柄上的盾牌是校验与黑名单</sub>
 </div>
 
 作者：[艾瑞可erik](https://erik.xyz)
@@ -66,7 +66,7 @@ jwt-webman/
 ├── tests/                           269 个用例：核心、七种接入、存储驱动、签名安全
 │   └── stubs/                       六框架最小化替身，无需安装框架即可跑测试
 ├── docs/                            文档与图形资源
-│   ├── pet.svg                      项目宠物「钥匙小卫 Kee」
+│   ├── pet.svg                      项目宠物「钥匙小卫 Kee」（柴犬门卫）
 │   ├── architecture.svg             架构设计图
 │   ├── features.svg                 功能设计图
 │   ├── lifecycle.svg                令牌生命周期图
@@ -726,14 +726,16 @@ public function cleanup(): void { $this->jwt->cleanup(); }
 
 <img src="./docs/pet.svg" width="180" align="right" alt="钥匙小卫 Kee" />
 
-**钥匙小卫 Kee** 是本项目的吉祥物，造型就是这套架构本身：
+**钥匙小卫 Kee** 是本项目的吉祥物——一只坐在门口、挂着钥匙吊牌的柴犬门卫。它不把架构长在身上，而是把架构戴在身上：
 
-- **钥匙柄**（圆头带表情）—— 框架无关内核：认得所有令牌，不认框架
-- **刃上六颗齿** —— webman / Laravel / ThinkPHP / Hyperf / Yii2 / Yii3 六个适配层，形状一致、位置固定
+- **柴犬本体** —— 项目本身：安静坐在门口，替每个请求验明正身
+- **项圈上的金色钥匙吊牌** —— 框架无关内核与 JWT 令牌：不管来的是哪个框架，认的都是同一把钥匙
+- **吊牌刃上的六颗齿** —— webman / Laravel / ThinkPHP / Hyperf / Yii2 / Yii3 六个适配层，形状一致、位置固定
 - **没有第七颗齿** —— 原生 PHP 项目直接使用内核，不需要适配层
-- **胸前盾牌** —— 校验与黑名单：验签通过才会亮起
+- **钥匙柄上的蓝色盾牌** —— 校验与黑名单：验签通过才会亮起；盾面四颗小铆钉对应 file / redis / database / memcached 四种存储驱动
+- **抬起的左前爪** —— 守门动作：出示令牌，校验通过再放行
 
-形象文件 `docs/pet.svg` 是纯矢量、无脚本、无外部依赖的单个文件，动画使用 SMIL 实现，可直接嵌入任何页面或文档。
+形象文件 `docs/pet.svg` 是纯矢量、无脚本、无外部依赖的单个文件，动画使用 SMIL 实现，可直接嵌入任何页面或文档。12 种表情形态放在 `docs/pet-expressions/`，均为独立的纯矢量文件，并遵循 `prefers-reduced-motion`。
 
 ### 在代码里使用
 
@@ -770,7 +772,7 @@ echo Mascot::svg();
 <tr><td align="center"><img src="docs/pet-expressions/coquettish.svg" width="88" alt="撒娇"><br><b>撒娇</b><br><code>:emoji-coquettish:</code></td><td align="center"><img src="docs/pet-expressions/cute.svg" width="88" alt="卖萌"><br><b>卖萌</b><br><code>:emoji-cute:</code></td><td align="center"><img src="docs/pet-expressions/pleasing.svg" width="88" alt="讨好"><br><b>讨好</b><br><code>:emoji-pleasing:</code></td><td align="center"><img src="docs/pet-expressions/knocking.svg" width="88" alt="敲打"><br><b>敲打</b><br><code>:emoji-knocking:</code></td><td align="center"><img src="docs/pet-expressions/facepalm.svg" width="88" alt="捂脸"><br><b>捂脸</b><br><code>:emoji-facepalm:</code></td><td align="center"><img src="docs/pet-expressions/tongue.svg" width="88" alt="吐舌头"><br><b>吐舌头</b><br><code>:emoji-tongue:</code></td></tr>
 </table>
 
-> 12 种彩色动态形态：笑 / 欢乐 / 哭 / 沮丧 / 惊恐 / 愤怒 / 撒娇 / 卖萌 / 讨好 / 敲打 / 捂脸 / 吐舌头。每个 SVG 自带表情、情绪特效与整体动效，并遵循 `prefers-reduced-motion`。
+> 12 种彩色动态形态（头像式半身构图）：笑 / 欢乐 / 哭 / 沮丧 / 惊恐 / 愤怒 / 撒娇 / 卖萌 / 讨好 / 敲打 / 捂脸 / 吐舌头。每个 SVG 自带表情、情绪特效与整体动效，并遵循 `prefers-reduced-motion`。
 <!-- pet-expressions:end -->
 
 <!-- assets-license:start -->
