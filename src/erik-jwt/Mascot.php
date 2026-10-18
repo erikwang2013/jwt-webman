@@ -13,11 +13,12 @@ declare(strict_types=1);
 namespace Erikwang2013\Jwt;
 
 /**
- * 项目宠物「钥匙小卫 Kee」。
+ * 项目宠物「钥匙小卫 Kee」——一只坐在门口、挂着钥匙吊牌的柴犬门卫。
  *
- * 造型取意：钥匙柄（带表情的圆头）= 框架无关内核，钥匙刃右侧的齿 =
- * webman / Laravel / ThinkPHP / Hyperf / Yii2 / Yii3 六个框架适配层，
- * 胸前的盾牌 = 校验与黑名单。
+ * 造型取意：柴犬本体 = 项目本身；项圈上的金色钥匙吊牌 = 框架无关内核与
+ * JWT 令牌；钥匙刃上的六颗齿 = webman / Laravel / ThinkPHP / Hyperf /
+ * Yii2 / Yii3 六个框架适配层；钥匙柄上的蓝色盾牌 = 校验与黑名单（四颗
+ * 小铆钉 = 四种黑名单存储驱动）；没有第七颗齿 = 原生 PHP 直接用内核。
  * 矢量形象见 docs/pet.svg，安装命令与项目文档共用同一形象。
  */
 final class Mascot
@@ -32,20 +33,15 @@ final class Mascot
     public const HOME = 'https://github.com/erikwang2013/jwt-webman';
 
     private const ART = <<<'ART'
-       .--------------.
-      /   o        o   \
-     |         ^        |
-     |       \___/      |
-      \        |       /
-       '.      |     .'
-         |     |     |
-      .--+-----+-----+--.
-     |      ( ### )      |
-      '--+-----+-----+--'
-         |     |     |
-         |     |     +--.
-         |     |     +--.
-         |_____|_____|
+        /\            /\
+       /  \__________/  \
+      /  o            o  \
+     |         ^          |
+     |        / \         |
+      \       \_/        /
+       \________________/
+              |###|
+              |___|
 ART;
 
     private const GOLD = "\033[38;5;214m";
@@ -77,7 +73,7 @@ ART;
             implode("\n", $art),
             '',
             '  ' . self::paint('erikwang2013/jwt-webman', $color, self::BOLD) . self::paint('  ·  PHP 多框架 JWT 认证插件', $color, self::DIM),
-            '  ' . self::paint(self::CN_NAME . ' ' . self::NAME . ' 已就位 —— 一套核心 · 六框架通行', $color, self::GOLD),
+            '  ' . self::paint(self::CN_NAME . ' ' . self::NAME . ' 已就位 —— 一只守门柴，替你看好每一枚令牌', $color, self::GOLD),
             '  ' . self::HOME,
             '',
         ];
