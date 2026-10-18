@@ -3,6 +3,7 @@
 - 日期：2026-10-19（在 2026-09-29 报告基础上复跑）
 - 运行环境：PHP 8.5.6 / PHPUnit 9.6.35
 - 运行命令：`vendor/bin/phpunit`（CI 使用 `composer test`）
+- CI：Auto Release 工作流在创建 tag 前以 PHP 8.1 运行 `composer test`；Memcached 扩展存在时相关用例使用 mock 运行，仅“缺少扩展”用例按设计跳过
 
 ## 测试统计
 
@@ -30,7 +31,7 @@
 - [x] `FileTokenStorage.php` — 黑名单写入/查询/过期清理/GC 概率/统计/非十六进制 jti 转十六进制文件名且不逃出存储目录
 - [x] `RedisTokenStorage.php` — ping 兼容(PONG/bool/+PONG)/exists 返回值兼容(setex 失败/异常包装)/前缀/重连成功与失败/过期不入库/`exists()` 返回 false 时抛错而非放行/非十六进制 jti 取 sha256 作为键
 - [x] `DatabaseTokenStorage.php` — SQLite 黑名单/更新回退/清理/表名校验/自定义表名/建表失败与操作失败→STORAGE_ERROR/PDO 静默错误模式下重复主键回退更新/查询失败抛错而非放行/关闭自动建表
-- [x] `MemcachedTokenStorage.php` — 扩展缺失时整体跳过（9 个跳过均由此产生）/非十六进制 jti 取 sha256 作为键
+- [x] `MemcachedTokenStorage.php` — 扩展缺失时整体跳过（本地 9 个跳过均由此产生）；扩展存在时用 PHPUnit mock 覆盖前缀/TTL/非十六进制 jti 的 sha256 键/失败码；调用状态通过共享对象断言，CI 可稳定运行
 - [x] `RetryTokenStorage.php` — 重试包装
 
 ### 框架集成（纯 PHPUnit 桩，不依赖真实框架）
@@ -50,6 +51,7 @@
 
 - `Mascot::forms()` / `Mascot::form()` / `Mascot::svg($form)` 接入 13 种形态（默认坐姿 + 12 种表情）；新增 6 个用例，覆盖形态列表、13 个 SVG 合法性与无脚本、默认/命名形态、名称归一化、未知名称与路径穿越防护
 - 自动发布工作流在创建 tag 前执行 `composer install` + `composer test`；修正带 scope 的 conventional commit 版本判断（`feat(pet):` / `feat!:` 现在分别正确 bump minor / major）
+- 修复 Memcached 用例的调用状态断言：原实现返回的数组按值复制，扩展存在时 CI 会误报 `set` 调用次数为 0；改为共享对象后可在 CI 稳定运行
 
 ## 2026-09-29：Yii2 / Yii3 适配（新增 41 个用例）
 
@@ -118,7 +120,7 @@ API 均按 `yiisoft/yii2` 与 `yiisoft/yii-console` 真实源码核对后实现�
 
 ## 遗留说明
 
-- Memcached 相关 9 个测试因扩展未安装跳过（`MemcachedTokenStorageTest` 的 setUp 检测 `class_exists('Memcached')`）
+- Memcached 相关 9 个测试在本地因扩展未安装跳过（`MemcachedTokenStorageTest` 的 setUp 检测 `class_exists('Memcached')`）；CI 环境有扩展时这些用例使用 mock 运行，仅 `testMemcachedStorageWithoutExtensionThrows` 按设计跳过
 - 框架集成测试基于桩类，未覆盖真实框架行为差异；若后续安装真实框架包，`tests/stubs/` 守卫会自动失效桩定义，但测试断言仍以桩语义为准
 - `JWT::decode()` 的 `FirebaseJWT::$leeway` 为全局静态属性，多实例不同 leeway 会互相覆盖（源码注释已说明，测试按单实例使用）
 - 过期令牌的 `isBlacklisted()` 返回 false（报告"已过期"而非"已拉黑"），`testIsBlacklistedExpiredBlacklistedTokenReturnsFalse` 固化该行为

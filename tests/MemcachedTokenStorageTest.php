@@ -17,31 +17,32 @@ class MemcachedTokenStorageTest extends TestCase
     private function makeMemcached($resultCode = null)
     {
         $memcached = $this->createMock(\Memcached::class);
-        $calls = ['set' => 0, 'get' => 0];
-        $data = [];
+        $state = new \stdClass();
+        $state->calls = ['set' => 0, 'get' => 0];
+        $state->data = [];
         $memcached->method('set')->willReturnCallback(
-            function ($key, $value, $ttl) use (&$calls, &$data) {
-                $calls['set']++;
-                $data[$key] = $value;
+            function ($key, $value, $ttl) use ($state) {
+                $state->calls['set']++;
+                $state->data[$key] = $value;
                 return true;
             }
         );
         $memcached->method('get')->willReturnCallback(
-            function ($key) use (&$calls, &$data) {
-                $calls['get']++;
-                return $data[$key] ?? false;
+            function ($key) use ($state) {
+                $state->calls['get']++;
+                return $state->data[$key] ?? false;
             }
         );
         $memcached->method('getResultCode')->willReturnCallback(
-            function () use ($resultCode, &$data) {
+            function () use ($resultCode, $state) {
                 if ($resultCode !== null) {
                     return $resultCode;
                 }
-                return empty($data) ? \Memcached::RES_NOTFOUND : \Memcached::RES_SUCCESS;
+                return empty($state->data) ? \Memcached::RES_NOTFOUND : \Memcached::RES_SUCCESS;
             }
         );
         $memcached->method('getResultMessage')->willReturn('fake memcached error');
-        return [$memcached, $calls, $data];
+        return [$memcached, $state];
     }
 
     private function jti(): string
@@ -51,12 +52,12 @@ class MemcachedTokenStorageTest extends TestCase
 
     public function testBlacklistStoresWithPrefixAndTtl(): void
     {
-        [$memcached, $calls, $data] = $this->makeMemcached();
+        [$memcached, $state] = $this->makeMemcached();
         $storage = new MemcachedTokenStorage($memcached, 'bl:');
         $jti = $this->jti();
         $this->assertTrue($storage->blacklist($jti, time() + 3600));
-        $this->assertSame(1, $calls['set']);
-        $this->assertArrayHasKey('bl:' . $jti, $data);
+        $this->assertSame(1, $state->calls['set']);
+        $this->assertArrayHasKey('bl:' . $jti, $state->data);
     }
 
     public function testIsBlacklistedTrue(): void
@@ -77,10 +78,10 @@ class MemcachedTokenStorageTest extends TestCase
 
     public function testAlreadyExpiredTokenReturnsTrue(): void
     {
-        [$memcached, $calls] = $this->makeMemcached();
+        [$memcached, $state] = $this->makeMemcached();
         $storage = new MemcachedTokenStorage($memcached);
         $this->assertTrue($storage->blacklist($this->jti(), time() - 100));
-        $this->assertSame(0, $calls['set']);
+        $this->assertSame(0, $state->calls['set']);
     }
 
     public function testCleanupReturnsTrue(): void
@@ -93,12 +94,12 @@ class MemcachedTokenStorageTest extends TestCase
     public function testNonHexJtiIsHashedIntoKey(): void
     {
         // Memcached 键不允许空格与控制字符，非十六进制 jti 统一取 sha256
-        [$memcached, $calls, $data] = $this->makeMemcached();
+        [$memcached, $state] = $this->makeMemcached();
         $storage = new MemcachedTokenStorage($memcached, 'bl:');
         $jti = '550e8400-e29b-41d4-a716-446655440000';
 
         $storage->blacklist($jti, time() + 3600);
-        $this->assertArrayHasKey('bl:' . hash('sha256', $jti), $data);
+        $this->assertArrayHasKey('bl:' . hash('sha256', $jti), $state->data);
     }
 
     public function testGetFailureCodeThrows(): void
