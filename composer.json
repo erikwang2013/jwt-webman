@@ -4,7 +4,6 @@
     "keywords": [
         "erik",
         "erikwang2013",
-        "erik",
         "jwt",
         "php",
         "framework-agnostic",
@@ -67,6 +66,9 @@
         "files": [
             "src/erik-jwt/Laravel/helpers.php"
         ]
+    },
+    "scripts": {
+        "test": "phpunit"
     },
     "repositories": {
         "packagist": {

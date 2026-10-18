@@ -65,6 +65,7 @@ jwt-webman/
 │   └── stubs/                       六框架最小化替身，无需安装框架即可跑测试
 ├── docs/                            文档与图形资源
 │   ├── pet.svg                      项目宠物「钥匙小卫 Kee」（柴犬门卫）
+│   ├── pet-expressions/             12 种表情形态（Mascot::form() 取用）
 │   ├── architecture.svg             架构设计图
 │   ├── features.svg                 功能设计图
 │   ├── lifecycle.svg                令牌生命周期图
@@ -732,7 +733,7 @@ public function cleanup(): void { $this->jwt->cleanup(); }
 - **金色钥匙吊牌** —— 框架无关内核与 JWT 令牌：不管来的是哪个框架，认的都是同一把钥匙
 - **钥匙柄上的蓝色盾牌** —— 校验与黑名单：验签通过才会亮起
 
-形象文件 `docs/pet.svg` 是纯矢量、无脚本、无外部依赖的单个文件，动画使用 SMIL 实现，可直接嵌入任何页面或文档。12 种表情形态放在 `docs/pet-expressions/`，均为独立的纯矢量文件，并遵循 `prefers-reduced-motion`。
+形象文件 `docs/pet.svg` 是纯矢量、无脚本、无外部依赖的单个文件，动画使用 SMIL 实现，可直接嵌入任何页面或文档。12 种表情形态放在 `docs/pet-expressions/`，均为独立的纯矢量文件，并遵循 `prefers-reduced-motion`。GitHub Social Preview 图见 `.github/social-preview.png`。
 
 ### 在代码里使用
 
@@ -794,6 +795,14 @@ foreach (Mascot::forms() as $name => $meta) {
 | ![吐舌头](docs/pet-expressions/tongue.svg) | `tongue` | **吐舌头** | `:emoji-tongue:` |
 
 > 12 种彩色动态形态（扁平卡通、头像式半身构图）：笑 / 欢乐 / 哭 / 沮丧 / 惊恐 / 愤怒 / 撒娇 / 卖萌 / 讨好 / 敲打 / 捂脸 / 吐舌头。每个 SVG 自带表情、情绪特效与整体动效，并遵循 `prefers-reduced-motion`。
+
+## 自动发布
+
+推送到 `main` 后，GitHub Actions 会先运行完整测试，再按提交信息计算下一个版本并创建 tag / Release：
+
+- `BREAKING` / `major:` / `major(scope):` / `!:` → major
+- `feat:` / `feat(scope):` / `feature:` / `minor:` / `新增` / `特性` → minor
+- 其余（`fix` / `docs` / `chore` 等，含带 scope 写法）→ patch
 
 ## 视觉资产授权 / Visual Assets License
 

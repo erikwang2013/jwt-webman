@@ -19,6 +19,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: pdo_sqlite
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run tests
+        run: composer test
+
       - name: Resolve next version
         id: version
         run: |
@@ -30,9 +43,10 @@ jobs:
           echo "commit range: $base..HEAD"
           while read -r msg; do
             [ -n "$msg" ] || continue
+            # 同时支持带 scope 的 Conventional Commits（feat(pet):）与破坏性标记（feat!:）
             case "$msg" in
-              *BREAKING*|*'major:'*) bump=major ;;
-              *'feat:'*|*'feature:'*|*'minor:'*|*'新增'*|*'特性'*)
+              *BREAKING*|*'major:'*|*'major('*|*'!:'*) bump=major ;;
+              *'feat:'*|*'feat('*|*'feature:'*|*'feature('*|*'minor:'*|*'minor('*|*'新增'*|*'特性'*)
                 # if 而非 && ：&& 列表失败会触发 set -e 中断整个步骤
                 if [ "$bump" = patch ]; then bump=minor; fi
                 ;;

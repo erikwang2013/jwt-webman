@@ -1,16 +1,16 @@
 # JWT Webman 插件单元测试报告
 
-- 日期：2026-09-29
+- 日期：2026-10-19（在 2026-09-29 报告基础上复跑）
 - 运行环境：PHP 8.5.6 / PHPUnit 9.6.35
-- 运行命令：`vendor/bin/phpunit`
+- 运行命令：`vendor/bin/phpunit`（CI 使用 `composer test`）
 
 ## 测试统计
 
 | 指标 | 数值 |
 |------|------|
-| 测试总数 | 270 |
-| 断言总数 | 518 |
-| 通过 | 261 |
+| 测试总数 | 276 |
+| 断言总数 | 582 |
+| 通过 | 267 |
 | 跳过 | 9（全部为 Memcached 扩展缺失） |
 | 失败 | 0 |
 | 错误 | 0 |
@@ -23,7 +23,7 @@
 - [x] `JwtWrapper.php` — 包装层/verify 显式令牌与自动读取请求头/无令牌报错
 - [x] `JWTFactory.php` — 配置创建/密钥长度与空密钥校验/redis 需 resolver/数据库需 PDO/memcached 缺扩展报 STORAGE_ERROR/redis 前缀/自定义表名/重试包装(RetryTokenStorage)/自定义文件路径/自动清理/配置文件加载 createFromFile 与文件缺失报错/随包分发的原生配置模板可直接加载
 - [x] `Native/Guard.php` — 显式令牌校验/请求头自动取令牌/无令牌抛 TOKEN_INVALID/check 不抛异常/requireAuth 返回 payload/401 响应体与框架中间件一致/黑名单令牌拒绝/由配置文件构建
-- [x] `Mascot.php` — 横幅纯文本无色码/着色与纯文本内容一致/pet.svg 为合法 XML 且无脚本
+- [x] `Mascot.php` — 横幅纯文本无色码/着色与纯文本内容一致/pet.svg 为合法 XML 且无脚本/13 种形态列表与元数据/每个形态 SVG 合法且无脚本/默认与命名形态/名称归一化/未知名称与路径穿越防护
 - [x] `JWTException.php` — 异常码与消息
 
 ### 存储层
@@ -46,7 +46,12 @@
 - `tests/FrameworkStubs.php`（入口）拆分为 `tests/stubs/` 下 8 个文件（PSR/全局/Laravel/ThinkPHP/Webman/Hyperf/Yii2/Yii3），均 ≤500 行；所有类/接口/函数带 class_exists/function_exists 守卫，真实包存在时自动跳过桩定义
 - Yii2 桩按真实源码复刻 `AuthMethod::beforeAction` 的流程（捕获 `UnauthorizedHttpException` → optional 放行 → 否则 challenge + handleFailure），因此 `optional` / 401 两条分支走的是真实语义而非简化替身
 
-## 本轮变更：Yii2 / Yii3 适配（新增 41 个用例）
+## 2026-10-19：宠物形态 API 与发布流程
+
+- `Mascot::forms()` / `Mascot::form()` / `Mascot::svg($form)` 接入 13 种形态（默认坐姿 + 12 种表情）；新增 6 个用例，覆盖形态列表、13 个 SVG 合法性与无脚本、默认/命名形态、名称归一化、未知名称与路径穿越防护
+- 自动发布工作流在创建 tag 前执行 `composer install` + `composer test`；修正带 scope 的 conventional commit 版本判断（`feat(pet):` / `feat!:` 现在分别正确 bump minor / major）
+
+## 2026-09-29：Yii2 / Yii3 适配（新增 41 个用例）
 
 | 文件 | 行数 | 职责 |
 |------|------|------|
@@ -123,4 +128,4 @@ API 均按 `yiisoft/yii2` 与 `yiisoft/yii-console` 真实源码核对后实现�
 - Yii2 的 `except` / `only` / `optional` 由框架 `ActionFilter` 提供，非本包代码，故桩与测试只覆盖 `beforeAction` 的 optional / 401 分支与 `authenticate()` 本身
 - Yii3 的 `storage.connection` 需由应用显式指定容器服务 id（本包不硬编码 `yiisoft/db`、`yiisoft/redis` 的接口名，避免跟随其版本漂移）；未配置时工厂抛带说明的 STORAGE_ERROR，该分支未写用例（需真实容器）
 - `docs/review-report-20260802.md` 为 2026-08-02 的历史审查记录，未随本轮改动更新
-- 插图中 `docs/pet.svg` 已重绘为六齿（刃身相应加长 32px，脚与投影随之下移，viewBox 240×310）；`docs/architecture.svg` 接入层已扩为 7 个方块
+- 插图中 `docs/pet.svg` 已改为扁平卡通柴犬门卫（viewBox 240×310）；`docs/pet-expressions/` 的 12 个表情同步为扁平头像式半身构图；`docs/architecture.svg` 接入层为 7 个方块
