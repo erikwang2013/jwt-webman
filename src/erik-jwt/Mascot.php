@@ -19,7 +19,8 @@ namespace Erikwang2013\Jwt;
  * ThinkPHP / Hyperf / Yii2 / Yii3 六个框架适配层；没有第七颗圆钉 = 原生 PHP
  * 直接使用内核；金色钥匙吊牌 = 框架无关内核与 JWT 令牌；钥匙柄上的蓝色盾牌
  * = 校验与黑名单。
- * 矢量形象见 docs/pet.svg，安装命令与项目文档共用同一形象。
+ * 矢量形象见 docs/pet.svg，12 种表情形态见 docs/pet-expressions/；
+ * 均可通过 Mascot::form() / Mascot::forms() 在代码中取用。
  */
 final class Mascot
 {
@@ -31,6 +32,27 @@ final class Mascot
 
     /** 项目主页 */
     public const HOME = 'https://github.com/erikwang2013/jwt-webman';
+
+    /**
+     * 全部形态：default 为默认坐姿，其余为 12 种表情。
+     *
+     * @var array<string, array{cn:string, en:string, shortcode:?string}>
+     */
+    private const FORMS = [
+        'default'    => ['cn' => '默认',   'en' => 'Default',     'shortcode' => null],
+        'smile'      => ['cn' => '笑',     'en' => 'Smile',       'shortcode' => ':emoji-smile:'],
+        'joy'        => ['cn' => '欢乐',   'en' => 'Joy',         'shortcode' => ':emoji-joy:'],
+        'cry'        => ['cn' => '哭',     'en' => 'Cry',         'shortcode' => ':emoji-cry:'],
+        'depressed'  => ['cn' => '沮丧',   'en' => 'Depressed',   'shortcode' => ':emoji-depressed:'],
+        'terrified'  => ['cn' => '惊恐',   'en' => 'Terrified',   'shortcode' => ':emoji-terrified:'],
+        'angry'      => ['cn' => '愤怒',   'en' => 'Angry',       'shortcode' => ':emoji-angry:'],
+        'coquettish' => ['cn' => '撒娇',   'en' => 'Coquettish',  'shortcode' => ':emoji-coquettish:'],
+        'cute'       => ['cn' => '卖萌',   'en' => 'Cute',        'shortcode' => ':emoji-cute:'],
+        'pleasing'   => ['cn' => '讨好',   'en' => 'Pleasing',    'shortcode' => ':emoji-pleasing:'],
+        'knocking'   => ['cn' => '敲打',   'en' => 'Knocking',    'shortcode' => ':emoji-knocking:'],
+        'facepalm'   => ['cn' => '捂脸',   'en' => 'Facepalm',    'shortcode' => ':emoji-facepalm:'],
+        'tongue'     => ['cn' => '吐舌头', 'en' => 'Tongue Out',  'shortcode' => ':emoji-tongue:'],
+    ];
 
     private const ART = <<<'ART'
         /\            /\
@@ -82,13 +104,49 @@ ART;
     }
 
     /**
-     * 宠物 SVG 源码，可直接输出到浏览器、写入文件或内联进 HTML。
+     * 全部宠物形态：默认坐姿 + 12 种表情。
+     *
+     * @return array<string, array{cn:string, en:string, shortcode:?string}>
      */
-    public static function svg(): string
+    public static function forms(): array
     {
-        $path = dirname(__DIR__, 2) . '/docs/pet.svg';
+        return self::FORMS;
+    }
+
+    /**
+     * 取指定形态的 SVG 源码。
+     *
+     * @param string $name 形态名（见 forms()），大小写与首尾空白不敏感
+     * @throws \InvalidArgumentException 形态名不存在
+     */
+    public static function form(string $name): string
+    {
+        $name = strtolower(trim($name));
+
+        if (!isset(self::FORMS[$name])) {
+            throw new \InvalidArgumentException(sprintf(
+                'Unknown mascot form "%s"; available: %s',
+                $name,
+                implode(', ', array_keys(self::FORMS))
+            ));
+        }
+
+        $root = dirname(__DIR__, 2);
+        $path = $name === 'default'
+            ? $root . '/docs/pet.svg'
+            : $root . '/docs/pet-expressions/' . $name . '.svg';
 
         return is_file($path) ? (string) file_get_contents($path) : '';
+    }
+
+    /**
+     * 宠物 SVG 源码，可直接输出到浏览器、写入文件或内联进 HTML。
+     *
+     * @param string|null $form 形态名；null 取默认坐姿形态
+     */
+    public static function svg(?string $form = null): string
+    {
+        return self::form($form ?? 'default');
     }
 
     private static function paint(string $text, bool $color, string $code): string

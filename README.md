@@ -46,7 +46,7 @@ jwt-webman/
 │   ├── TokenStorageInterface.php    核心：黑名单存储抽象接口
 │   ├── JWTException.php             核心：异常层级（配置 / 无效 / 过期 / 黑名单 / 存储）
 │   ├── MiddlewareSupport.php        核心：中间件共用的 except 白名单匹配
-│   ├── Mascot.php                   宠物：终端横幅 banner() 与矢量形象 svg()
+│   ├── Mascot.php                   宠物：横幅 banner()、形态列表 forms()、矢量形象 svg()/form()
 │   ├── RedisTokenStorage.php        存储：Redis（注入 callable 连接）
 │   ├── DatabaseTokenStorage.php     存储：数据库（注入 PDO，兼容静默错误模式）
 │   ├── FileTokenStorage.php         存储：文件系统（路径可配、概率 GC）
@@ -61,7 +61,7 @@ jwt-webman/
 │   ├── Yii2/                        接入层：Component · AuthMethod 过滤器 · Identity · InstallController
 │   ├── Yii3/                        接入层：PSR-15 Middleware · InstallCommand · config-plugin 配置
 │   └── config/                      随包分发的各框架默认配置
-├── tests/                           269 个用例：核心、七种接入、存储驱动、签名安全
+├── tests/                           276 个用例：核心、七种接入、存储驱动、签名安全
 │   └── stubs/                       六框架最小化替身，无需安装框架即可跑测试
 ├── docs/                            文档与图形资源
 │   ├── pet.svg                      项目宠物「钥匙小卫 Kee」（柴犬门卫）
@@ -747,7 +747,7 @@ php yii jwt/install                # Yii2
 # webman：composer require 时由插件安装入口 Install::install() 打印
 ```
 
-也可以在业务代码里取出矢量形象：
+也可以在业务代码里取出矢量形象与表情形态：
 
 ```php
 use Erikwang2013\Jwt\Mascot;
@@ -755,28 +755,43 @@ use Erikwang2013\Jwt\Mascot;
 // 终端横幅：自动探测 TTY 决定是否着色，可强制 Mascot::banner(true|false)
 echo Mascot::banner();
 
-// 矢量形象：同样的形象可以直接输出给浏览器或写进视图
+// 默认矢量形象：可直接输出给浏览器或写进视图
 header('Content-Type: image/svg+xml');
 echo Mascot::svg();
+
+// 12 种表情形态：smile / joy / cry / depressed / terrified / angry /
+// coquettish / cute / pleasing / knocking / facepalm / tongue
+echo Mascot::form('smile');
+
+// Mascot::svg('smile') 与 Mascot::form('smile') 等价
+echo Mascot::svg('cry');
+
+// 列出全部形态及其中英文名与短码
+foreach (Mascot::forms() as $name => $meta) {
+    // $name: default / smile / ...
+    // $meta['cn'], $meta['en'], $meta['shortcode']
+}
 ```
+
+`forms()` 返回 `default` 与 12 种表情的元数据；`form()` 对未知形态名抛 `InvalidArgumentException`，形态文件缺失时返回空字符串。
 
 
 ## 项目宠物表情形态 · 钥匙小卫 Kee
 
-| 表情 | 名称 | Shortcode |
-|:---:|:---:|:---:|
-| ![笑](docs/pet-expressions/smile.svg) | **笑** | `:emoji-smile:` |
-| ![欢乐](docs/pet-expressions/joy.svg) | **欢乐** | `:emoji-joy:` |
-| ![哭](docs/pet-expressions/cry.svg) | **哭** | `:emoji-cry:` |
-| ![沮丧](docs/pet-expressions/depressed.svg) | **沮丧** | `:emoji-depressed:` |
-| ![惊恐](docs/pet-expressions/terrified.svg) | **惊恐** | `:emoji-terrified:` |
-| ![愤怒](docs/pet-expressions/angry.svg) | **愤怒** | `:emoji-angry:` |
-| ![撒娇](docs/pet-expressions/coquettish.svg) | **撒娇** | `:emoji-coquettish:` |
-| ![卖萌](docs/pet-expressions/cute.svg) | **卖萌** | `:emoji-cute:` |
-| ![讨好](docs/pet-expressions/pleasing.svg) | **讨好** | `:emoji-pleasing:` |
-| ![敲打](docs/pet-expressions/knocking.svg) | **敲打** | `:emoji-knocking:` |
-| ![捂脸](docs/pet-expressions/facepalm.svg) | **捂脸** | `:emoji-facepalm:` |
-| ![吐舌头](docs/pet-expressions/tongue.svg) | **吐舌头** | `:emoji-tongue:` |
+| 表情 | 形态名 | 名称 | Shortcode |
+|:---:|:---:|:---:|:---:|
+| ![笑](docs/pet-expressions/smile.svg) | `smile` | **笑** | `:emoji-smile:` |
+| ![欢乐](docs/pet-expressions/joy.svg) | `joy` | **欢乐** | `:emoji-joy:` |
+| ![哭](docs/pet-expressions/cry.svg) | `cry` | **哭** | `:emoji-cry:` |
+| ![沮丧](docs/pet-expressions/depressed.svg) | `depressed` | **沮丧** | `:emoji-depressed:` |
+| ![惊恐](docs/pet-expressions/terrified.svg) | `terrified` | **惊恐** | `:emoji-terrified:` |
+| ![愤怒](docs/pet-expressions/angry.svg) | `angry` | **愤怒** | `:emoji-angry:` |
+| ![撒娇](docs/pet-expressions/coquettish.svg) | `coquettish` | **撒娇** | `:emoji-coquettish:` |
+| ![卖萌](docs/pet-expressions/cute.svg) | `cute` | **卖萌** | `:emoji-cute:` |
+| ![讨好](docs/pet-expressions/pleasing.svg) | `pleasing` | **讨好** | `:emoji-pleasing:` |
+| ![敲打](docs/pet-expressions/knocking.svg) | `knocking` | **敲打** | `:emoji-knocking:` |
+| ![捂脸](docs/pet-expressions/facepalm.svg) | `facepalm` | **捂脸** | `:emoji-facepalm:` |
+| ![吐舌头](docs/pet-expressions/tongue.svg) | `tongue` | **吐舌头** | `:emoji-tongue:` |
 
 > 12 种彩色动态形态（扁平卡通、头像式半身构图）：笑 / 欢乐 / 哭 / 沮丧 / 惊恐 / 愤怒 / 撒娇 / 卖萌 / 讨好 / 敲打 / 捂脸 / 吐舌头。每个 SVG 自带表情、情绪特效与整体动效，并遵循 `prefers-reduced-motion`。
 
